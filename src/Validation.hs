@@ -23,8 +23,8 @@ Instances of different standard typeclasses provide various semantics:
 3. 'Applicative': apply function to values inside 'Success' and accumulate
    errors inside 'Failure'.
 4. 'Semigroup': accumulate both 'Failure' and 'Success' with '<>'.
-5. 'Monoid': 'Success' that shores 'mempty'.
-6. 'Alternative': return first 'Success' or accumulate all errors inside 'Failure'.
+5. 'Monoid': 'Success' that stores 'mempty'.
+6. 'Alternative': return the first 'Success' or accumulate all errors inside 'Failure'.
 -}
 
 {-# LANGUAGE CPP                  #-}
@@ -53,17 +53,16 @@ import Data.Bitraversable (Bitraversable (..))
 #endif
 
 -- >>> $setup
--- >>> import Relude
 
 {- $use
 
-Take for example a type @Computer@ that needs to be validated:
+To give you an example of usage of 'Validation' let's take a @Computer@  data type that needs to be validated:
 
 >>> :{
 data Computer = Computer
     { computerRam  :: !Int  -- ^ Ram in Gigabytes
     , computerCpus :: !Int
-    } deriving (Eq, Show)
+    } deriving stock (Eq, Show)
 :}
 
 You can validate that the computer has a minimum of 16GB of RAM:
@@ -129,7 +128,7 @@ instance Functor (Validation e) where
     _ <$ Failure e = Failure e
     {-# INLINE (<$) #-}
 
-{- | This instances covers the following cases:
+{- | This instance covers the following cases:
 
 1. Both 'Success': combine values inside 'Success' with '<>'.
 2. Both 'Failure': combine values inside 'Failure' with '<>'.
@@ -151,7 +150,6 @@ Failure ["WRONG","FAIL"]
 >>> success1 <> failure1
 Failure ["WRONG"]
 
-@since 0.6.0.0
 -}
 instance (Semigroup e, Semigroup a) => Semigroup (Validation e a) where
     (<>) :: Validation e a -> Validation e a -> Validation e a
@@ -160,7 +158,6 @@ instance (Semigroup e, Semigroup a) => Semigroup (Validation e a) where
 
 {- | 'mempty' is @'Success' 'mempty'@.
 
-@since 0.6.0.0
 -}
 instance (Semigroup e, Semigroup a, Monoid a) => Monoid (Validation e a) where
     mempty :: Validation e a
