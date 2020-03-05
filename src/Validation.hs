@@ -1,3 +1,9 @@
+{-# LANGUAGE CPP                  #-}
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE TypeOperators        #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 {- |
 Copyright:  (c) 2014 Chris Allen, Edward Kmett
             (c) 2018-2020 Kowainik
@@ -27,16 +33,14 @@ Instances of different standard typeclasses provide various semantics:
 6. 'Alternative': return the first 'Success' or accumulate all errors inside 'Failure'.
 -}
 
-{-# LANGUAGE CPP                  #-}
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE TypeOperators        #-}
-{-# LANGUAGE UndecidableInstances #-}
-
 module Validation
-       ( -- * How to use
+       ( -- * Type
+         Validation (..)
+
+         -- * How to use
          -- $use
-         Validation(..)
+
+         -- * Interface functions
        , validationToEither
        , eitherToValidation
        ) where
@@ -52,7 +56,6 @@ import Data.Bifoldable (Bifoldable (..))
 import Data.Bitraversable (Bitraversable (..))
 #endif
 
--- >>> $setup
 
 {- $use
 
@@ -157,7 +160,6 @@ instance (Semigroup e, Semigroup a) => Semigroup (Validation e a) where
     {-# INLINE (<>) #-}
 
 {- | 'mempty' is @'Success' 'mempty'@.
-
 -}
 instance (Semigroup e, Semigroup a, Monoid a) => Monoid (Validation e a) where
     mempty :: Validation e a
@@ -377,8 +379,6 @@ In case it is used by mistake, the user will see the following:
 ... Type 'Validation' doesn't have lawful 'Monad' instance
       which means that you can't use 'Monad' methods with 'Validation'.
 ...
-
-@since 0.6.0.0
 -}
 instance (NoValidationMonadError, Semigroup e) => Monad (Validation e) where
     return = error "Unreachable Validation instance of Monad"
