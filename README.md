@@ -8,4 +8,4 @@
 [![Stackage Nightly](http://stackage.org/package/validation-selective/badge/nightly)](http://stackage.org/nightly/package/validation-selective)
 [![MPL-2.0 license](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](LICENSE)
 
-Lightweight validation based on `Applicative` and `Selective` functors.
+Lightweight pure validation based on `Applicative` and `Selective` functors.

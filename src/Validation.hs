@@ -24,13 +24,16 @@ Common use-cases include:
 
 Instances of different standard typeclasses provide various semantics:
 
-1. 'Functor': change the type inside 'Success'.
-2. 'Bifunctor': change both 'Failure' and 'Success'.
-3. 'Applicative': apply function to values inside 'Success' and accumulate
+1. 'Semigroup': accumulate both 'Failure' and 'Success' with '<>'.
+2. 'Monoid': 'Success' that stores 'mempty'.
+3. 'Functor': change the type inside 'Success'.
+4. 'Bifunctor': change both 'Failure' and 'Success'.
+5. 'Applicative': apply function to values inside 'Success' and accumulate
    errors inside 'Failure'.
-4. 'Semigroup': accumulate both 'Failure' and 'Success' with '<>'.
-5. 'Monoid': 'Success' that stores 'mempty'.
-6. 'Alternative': return the first 'Success' or accumulate all errors inside 'Failure'.
+6. 'Alternative': return the first 'Success' or accumulate all errors
+   inside 'Failure'.
+7. 'Selective': choose which validations to apply based on the value
+   inside.
 -}
 
 module Validation
@@ -46,6 +49,7 @@ module Validation
        ) where
 
 import Control.Applicative (Alternative (..), Applicative (..))
+import Control.Selective (Selective (..))
 import Data.Bifunctor (Bifunctor (..))
 import Data.Foldable (Foldable (..))
 import Data.Kind (Constraint)
@@ -56,6 +60,8 @@ import Data.Bifoldable (Bifoldable (..))
 import Data.Bitraversable (Bitraversable (..))
 #endif
 
+-- >>> $setup
+-- >>> import Control.Selective (ifS)
 
 {- $use
 
@@ -247,6 +253,83 @@ instance Semigroup e => Applicative (Validation e) where
     Success a <* Success _  = Success a
     {-# INLINE (<*) #-}
 
+{- | 'Selective' functors from the [selective](https://hackage.haskell.org/package/selective)
+package. This instance allows choosing which validations to apply
+based on value inside. 'Validation' can't have a lawful 'Monad'
+instance but it's highly desirable to have the monadic behavior in cases
+when you want future checks depend on previous values. 'Selective'
+allows to circumvent this limitation by providing the desired
+behavior.
+
+==== __Example__
+
+The following usage example is taken from the [Selective Applicative Functors](https://www.staff.ncl.ac.uk/andrey.mokhov/selective-functors.pdf)
+paper by Andrey Mokhov, Georgy Lukyanov, Simon Marlow, Jeremie Dimino.
+
+
+Let's say we have a shape — a circle or a rectangle:
+
+
+>>> :{
+newtype Radius = Radius Int deriving newtype (Num, Show)
+newtype Height = Height Int deriving newtype (Num, Show)
+newtype Width  = Width  Int deriving newtype (Num, Show)
+:}
+
+>>> :{
+data Shape
+    = Circle Radius
+    | Rectangle Width Height
+    deriving stock (Show)
+:}
+
+We define a function that constructs a shape given a choice of the
+shape @x@, and the shape’s parameters (@r@, @w@, and @h@) in an
+arbitrary selective functor @f@. You can think of the inputs as
+results of reading the corresponding fields from a web form, where @x@
+is a checkbox, and all other fields are numeric textboxes, some of
+which may be empty.
+
+>>> :{
+shape :: Selective f => f Bool -> f Radius -> f Width -> f Height -> f Shape
+shape x r w h = ifS x (Circle <$> r) (Rectangle <$> w <*> h)
+:}
+
+We choose @f = 'Validation' [String]@ to report the errors that
+occurred when reading values from the form. Let us see how this works.
+
+>>> shape (Success True) (Success 1) (Failure ["width?"]) (Failure ["height?"])
+Success (Circle 1)
+>>> shape (Success False) (Failure ["radius?"]) (Success 2) (Success 3)
+Success (Rectangle 2 3)
+>>> shape (Success False) (Success 1) (Failure ["width?"]) (Failure ["height?"])
+Failure ["width?", "height?"]
+>>> shape (Failure ["choice?"]) (Failure ["radius?"]) (Success 2) (Failure ["height?"])
+Failure ["choice?"]
+
+In the last example, since the shape’s choice could not be read, we do
+not report any subsequent errors. But it does not mean we are
+short-circuiting the validation: we will continue accumulating errors
+as soon as we get out of the failed conditional, as demonstrated
+below.
+
+>>> :{
+twoShapes :: Applicative f => f Shape -> f Shape -> f (Shape, Shape)
+twoShapes = liftA2 (,)
+:}
+
+>>> s1 = shape (Failure ["choice 1?"]) (Success 1) (Failure ["width 1?"]) (Success 3)
+>>> s2 = shape (Success False) (Success 1) (Success 2) (Failure ["height 2?"])
+>>> twoShapes s1 s2
+Failure ["choice 1?","height 2?"]
+-}
+instance Semigroup e => Selective (Validation e) where
+    select :: Validation e (Either a b) -> Validation e (a -> b) -> Validation e b
+    select (Failure e)   _ = Failure e -- Skip effect after failed conditions
+    select (Success eab) f = case eab of
+        Left a  -> ($ a) <$> f  -- Apply second effect
+        Right b -> Success b    -- Skip second effect
+    {-# INLINE select #-}
 
 {- | This instance implements the following behavior for the binary operator:
 
