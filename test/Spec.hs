@@ -1,5 +1,9 @@
 module Main (main) where
 
+import Test.Hspec (hspec)
+
+import Test.Property (validationLawsSpec)
+
 
 main :: IO ()
-main = putStrLn ("Test suite is not implemented" :: String)
+main = hspec validationLawsSpec

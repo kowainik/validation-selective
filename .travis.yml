@@ -23,7 +23,7 @@ matrix:
 
 install:
   # HLint check
-  - curl -sSL https://raw.github.com/ndmitchell/neil/master/misc/travis.sh | sh -s -- hlint .
+  - curl -sSL https://raw.github.com/ndmitchell/neil/master/misc/travis.sh | sh -s -- hlint . -XTypeApplications
 
   - |
     if [ -z "$STACK_YAML" ]; then
