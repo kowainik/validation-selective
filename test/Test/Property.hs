@@ -166,11 +166,11 @@ genSmallInt = Gen.int (Range.linear (-10) 10)
 
 -- | Generate a 'Text' of length @3-7@.
 genSmallText :: Gen Text
-genSmallText = Gen.text (Range.linear 3 10) Gen.unicode
+genSmallText = Gen.text (Range.linear 0 10) Gen.unicode
 
 -- | Generate a 'Validation'.
 genValidation :: Gen a -> Gen (Validation [Text] a)
 genValidation gen = Gen.choice
     [ Success <$> gen
-    , Failure <$> Gen.list (Range.linear 1 5) genSmallText
+    , Failure <$> Gen.list (Range.linear 0 5) genSmallText
     ]
