@@ -76,3 +76,11 @@ test-suite validation-selective-test
   ghc-options:         -threaded
                        -rtsopts
                        -with-rtsopts=-N
+
+test-suite validation-selective-doctest
+  import:              common-options
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Doctest.hs
+  build-depends:       doctest ^>= 0.16
+  ghc-options:         -threaded

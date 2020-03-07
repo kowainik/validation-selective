@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-16.04
     strategy:
       matrix:
-        cabal: ["2.4"]
+        cabal: ["3.0"]
         ghc:
           - "8.4.4"
           - "8.6.5"
@@ -36,9 +36,9 @@ jobs:
 
     - name: Build
       run: |
-        cabal v2-update
-        cabal v2-build --enable-tests --enable-benchmarks
+        cabal update
+        cabal build --enable-tests --enable-benchmarks --write-ghc-environment-files=always
 
     - name: Test
       run: |
-        cabal v2-test --enable-tests
+        cabal test --enable-tests

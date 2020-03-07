@@ -60,7 +60,9 @@ import Data.Bifoldable (Bifoldable (..))
 import Data.Bitraversable (Bitraversable (..))
 #endif
 
--- >>> $setup
+
+-- $setup
+-- >>> import Control.Applicative (liftA3)
 -- >>> import Control.Selective (ifS)
 
 {- $use
@@ -77,7 +79,7 @@ data Computer = Computer
 You can validate that the computer has a minimum of 16GB of RAM:
 
 >>> :{
-validateRam :: Int -> Validation [Text] Int
+validateRam :: Int -> Validation [String] Int
 validateRam ram
     | ram >= 16 = Success ram
     | otherwise = Failure ["Not enough RAM"]
@@ -86,7 +88,7 @@ validateRam ram
 and that the processor has at least two CPUs:
 
 >>> :{
-validateCpus :: Int -> Validation [Text] Int
+validateCpus :: Int -> Validation [String] Int
 validateCpus cpus
     | cpus >= 2 = Success cpus
     | otherwise = Failure ["Not enough CPUs"]
@@ -99,7 +101,7 @@ valid @Computer@ or the errors that prevent it from being considered valid.
 Like so:
 
 >>> :{
-mkComputer :: Int -> Int -> Validation [Text] Computer
+mkComputer :: Int -> Int -> Validation [String] Computer
 mkComputer ram cpus = Computer
     <$> validateRam ram
     <*> validateCpus cpus
@@ -145,10 +147,10 @@ instance Functor (Validation e) where
 
 __Examples__
 
->>> success1 = Success [42] :: Validation [Text] [Int]
->>> success2 = Success [69] :: Validation [Text] [Int]
->>> failure1 = Failure ["WRONG"] :: Validation [Text] [Int]
->>> failure2 = Failure ["FAIL"]  :: Validation [Text] [Int]
+>>> success1 = Success [42] :: Validation [String] [Int]
+>>> success2 = Success [69] :: Validation [String] [Int]
+>>> failure1 = Failure ["WRONG"] :: Validation [String] [Int]
+>>> failure2 = Failure ["FAIL"]  :: Validation [String] [Int]
 
 >>> success1 <> success2
 Success [42,69]
@@ -183,11 +185,11 @@ style.
 
 __Examples__
 
->>> success1 = Success 42 :: Validation [Text] Int
->>> success2 = Success 69 :: Validation [Text] Int
->>> successF = Success (* 2) :: Validation [Text] (Int -> Int)
->>> failure1 = Failure ["WRONG"] :: Validation [Text] Int
->>> failure2 = Failure ["FAIL"]  :: Validation [Text] Int
+>>> success1 = Success 42 :: Validation [String] Int
+>>> success2 = Success 69 :: Validation [String] Int
+>>> successF = Success (* 2) :: Validation [String] (Int -> Int)
+>>> failure1 = Failure ["WRONG"] :: Validation [String] Int
+>>> failure2 = Failure ["FAIL"]  :: Validation [String] Int
 
 >>> successF <*> success1
 Success 84
@@ -220,7 +222,7 @@ isFailure (Success _) = False
 Failure ["WRONG","FAIL"]
 >>> isFailure $ failure1 *> failure2
 True
->>> epicFail = error "Impossible validation" :: Validation [Text] Int
+>>> epicFail = error "Impossible validation" :: Validation [String] Int
 >>> isFailure $ failure1 *> epicFail
 True
 -}
@@ -303,7 +305,7 @@ Success (Circle 1)
 >>> shape (Success False) (Failure ["radius?"]) (Success 2) (Success 3)
 Success (Rectangle 2 3)
 >>> shape (Success False) (Success 1) (Failure ["width?"]) (Failure ["height?"])
-Failure ["width?", "height?"]
+Failure ["width?","height?"]
 >>> shape (Failure ["choice?"]) (Failure ["radius?"]) (Success 2) (Failure ["height?"])
 Failure ["choice?"]
 
@@ -339,10 +341,10 @@ instance Semigroup e => Selective (Validation e) where
 
 __Examples__
 
->>> success1 = Success [42] :: Validation [Text] [Int]
->>> success2 = Success [69] :: Validation [Text] [Int]
->>> failure1 = Failure ["WRONG"] :: Validation [Text] [Int]
->>> failure2 = Failure ["FAIL"]  :: Validation [Text] [Int]
+>>> success1 = Success [42] :: Validation [String] [Int]
+>>> success2 = Success [69] :: Validation [String] [Int]
+>>> failure1 = Failure ["WRONG"] :: Validation [String] [Int]
+>>> failure2 = Failure ["FAIL"]  :: Validation [String] [Int]
 
 >>> success1 <|> success2
 Success [42]
