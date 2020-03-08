@@ -4,6 +4,7 @@
 module Test.Gen
     ( genValidation
     , genFunction
+    , genFunction2
     , genInt
     , genSmallInt
     , genSmallText
@@ -19,7 +20,7 @@ import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 
 
--- | Generate a simple function from the list.
+-- | Generate a simple unary function from the list.
 genFunction :: Gen (Int -> Int)
 genFunction = genInt >>= \n -> Gen.element
     [ id
@@ -28,6 +29,16 @@ genFunction = genInt >>= \n -> Gen.element
     , const n
     , (n -)
     , subtract n
+    ]
+
+-- | Generate a simple binary function from the list.
+genFunction2 :: Gen (Int -> Int -> Int)
+genFunction2 = Gen.element
+    [ const
+    , (+)
+    , (*)
+    , (-)
+    , subtract
     ]
 
 -- | Generate an 'Int'.

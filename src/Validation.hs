@@ -232,28 +232,36 @@ instance Semigroup e => Applicative (Validation e) where
     {-# INLINE pure #-}
 
     (<*>) :: Validation e (a -> b) -> Validation e a -> Validation e b
-    Failure e <*> b = Failure $ case b of
-        Failure e' -> e <> e'
-        Success _  -> e
-    Success _ <*> Failure e  = Failure e
+    Failure e1 <*> b = Failure $ case b of
+        Failure e2 -> e1 <> e2
+        Success _  -> e1
+    Success _ <*> Failure e = Failure e
     Success f <*> Success a = Success (f a)
     {-# INLINE (<*>) #-}
 
     (*>) :: Validation e a -> Validation e b -> Validation e b
-    Failure e *> b = Failure $ case b of
-        Failure e' -> e <> e'
-        Success _  -> e
-    Success _ *> Failure e  = Failure e
-    Success _ *> Success b  = Success b
+    Failure e1 *> b = Failure $ case b of
+        Failure e2 -> e1 <> e2
+        Success _  -> e1
+    Success _ *> Failure e = Failure e
+    Success _ *> Success b = Success b
     {-# INLINE (*>) #-}
 
     (<*) :: Validation e a -> Validation e b -> Validation e a
-    Failure e <* b = Failure $ case b of
-        Failure e' -> e <> e'
-        Success _  -> e
-    Success _ <* Failure e  = Failure e
-    Success a <* Success _  = Success a
+    Failure e1 <* b = Failure $ case b of
+        Failure e2 -> e1 <> e2
+        Success _  -> e1
+    Success _ <* Failure e = Failure e
+    Success a <* Success _ = Success a
     {-# INLINE (<*) #-}
+
+    liftA2 :: (a -> b -> c) -> Validation e a -> Validation e b -> Validation e c
+    liftA2 _ (Failure e1) b = Failure $ case b of
+        Failure e2 -> e1 <> e2
+        Success _  -> e1
+    liftA2 _ (Success _) (Failure e) = Failure e
+    liftA2 f (Success a) (Success b) = Success (f a b)
+    {-# INLINE liftA2 #-}
 
 {- | 'Selective' functors from the [selective](https://hackage.haskell.org/package/selective)
 package. This instance allows choosing which validations to apply
@@ -364,21 +372,84 @@ instance (Semigroup e, Monoid e) => Alternative (Validation e) where
     Failure e <|> Failure e' = Failure (e <> e')
     {-# INLINE (<|>) #-}
 
+{- |
+-}
 instance Foldable (Validation e) where
     fold :: Monoid m => Validation e m -> m
-    fold (Success a) = a
-    fold (Failure _) = mempty
+    fold = \case
+        Failure _ -> mempty
+        Success a -> a
     {-# INLINE fold #-}
 
     foldMap :: Monoid m => (a -> m) -> Validation e a -> m
-    foldMap _ (Failure _) = mempty
-    foldMap f (Success a) = f a
+    foldMap f = \case
+        Failure _ -> mempty
+        Success a -> f a
     {-# INLINE foldMap #-}
 
     foldr :: (a -> b -> b) -> b -> Validation e a -> b
-    foldr f x (Success a) = f a x
-    foldr _ x (Failure _) = x
+    foldr f x = \case
+        Failure _ -> x
+        Success a -> f a x
     {-# INLINE foldr #-}
+
+    foldr' :: (a -> b -> b) -> b -> Validation e a -> b
+    foldr' = foldr
+    {-# INLINE foldr' #-}
+
+    foldl :: (b -> a -> b) -> b -> Validation e a -> b
+    foldl f x = \case
+        Failure _ -> x
+        Success a -> f x a
+    {-# INLINE foldl #-}
+
+    foldl' :: (b -> a -> b) -> b -> Validation e a -> b
+    foldl' = foldl
+    {-# INLINE foldl' #-}
+
+    toList :: Validation e a -> [a]
+    toList = \case
+        Failure _ -> []
+        Success a -> [a]
+    {-# INLINE toList #-}
+
+    null :: Validation e a -> Bool
+    null = \case
+        Failure _ -> True
+        Success _ -> False
+    {-# INLINE null #-}
+
+    length :: Validation e a -> Int
+    length = \case
+        Failure _ -> 0
+        Success _ -> 1
+    {-# INLINE length #-}
+
+    elem :: Eq a => a -> Validation e a -> Bool
+    elem x = \case
+        Failure _ -> False
+        Success a -> x == a
+    {-# INLINE elem #-}
+
+    sum :: Num a => Validation e a -> a
+    sum = \case
+        Failure _ -> 0
+        Success a -> a
+    {-# INLINE sum #-}
+
+    product :: Num a => Validation e a -> a
+    product = \case
+        Failure _ -> 1
+        Success a -> a
+    {-# INLINE product #-}
+
+    -- not-implemented because they are partial, so we're using the
+    -- default implementations
+    --
+    -- foldr1  :: (a -> a -> a) -> Validation e a -> a
+    -- foldl1  :: (a -> a -> a) -> Validation e a -> a
+    -- maximum :: Ord a => Validation e a -> a
+    -- minimum :: Ord a => Validation e a -> a
 
 instance Traversable (Validation e) where
     traverse :: Applicative f => (a -> f b) -> Validation e a -> f (Validation e b)
@@ -387,7 +458,9 @@ instance Traversable (Validation e) where
     {-# INLINE traverse #-}
 
     sequenceA :: Applicative f => Validation e (f a) -> f (Validation e a)
-    sequenceA = traverse id
+    sequenceA = \case
+        Failure e -> pure (Failure e)
+        Success f -> Success <$> f
     {-# INLINE sequenceA #-}
 
 instance Bifunctor Validation where
