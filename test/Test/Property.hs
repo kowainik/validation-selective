@@ -29,8 +29,8 @@ import Test.Hspec (Spec, describe, it)
 import Test.Hspec.Hedgehog (hedgehog)
 import Validation (Validation (..))
 
-import Test.Gen (genEither, genFunction, genInt, genSmallInt, genSmallList, genSmallText,
-                 genValidation)
+import Test.Gen (genEither, genFunction, genFunction2, genInt, genSmallInt, genSmallList,
+                 genSmallText, genValidation)
 
 
 validationLawsSpec :: Spec
@@ -67,6 +67,11 @@ validationLawsSpec = describe "Validation Property Tests" $ do
             applicativeInterchange
         it "Apply Right: u *> v ≡ (id <$ u) <*> v"  applicativeApplyRight
         it "Apply Left:  u <* v ≡ liftA2 const u v" applicativeApplyLeft
+        it "(<*>) via liftA2: (<*>) ≡ liftA2 id"
+            applicativeApViaLiftA2
+        it "liftA2 via (<*>): liftA2 f x y ≡ f <$> x <*> y"
+            applicativeLiftA2ViaAp
+
     describe "Alternative instance for Validation" $ do
         it "Associativity: a <|> (b <|> c) ≡ (a <|> b) <|> c"
             alternativeAssociativity
@@ -190,6 +195,19 @@ applicativeApplyLeft = hedgehog $ do
     vx <- forAll genVal
     (vy <* vx) === liftA2 const vy vx
 
+applicativeApViaLiftA2 :: Property
+applicativeApViaLiftA2 = hedgehog $ do
+    vf <- forAllWith (const "f") $ genValidation genFunction
+    vx <- forAll $ genValidation genInt
+    (vf <*> vx) === (liftA2 id vf vx)
+
+applicativeLiftA2ViaAp :: Property
+applicativeLiftA2ViaAp = hedgehog $ do
+    f <- forAllWith (const "f") genFunction2
+    vx <- forAll $ genValidation genInt
+    vy <- forAll $ genValidation genInt
+    liftA2 f vx vy === (f <$> vx <*> vy)
+
 ----------------------------------------------------------------------------
 -- Alternative instance properties
 ----------------------------------------------------------------------------
@@ -227,7 +245,7 @@ selectiveAssociativity :: Property
 selectiveAssociativity = do
     x <- forAll $ genValidation $ genEither genInt genInt
     y <- forAllWith (const "y") $ genValidation $ genEither genInt genFunction
-    z <- forAllWith (const "z") $ genValidation $ const <$> genFunction
+    z <- forAllWith (const "z") $ genValidation genFunction2
     let f = fmap Right
     let g a b = bimap (,b) ($ b) a
     let h = uncurry
