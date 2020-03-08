@@ -225,7 +225,7 @@ selectiveDistributivity = do
 
 selectiveAssociativity :: Property
 selectiveAssociativity = do
-    x <- forAllWith (const "x") $ genValidation $ genEither genInt genInt
+    x <- forAll $ genValidation $ genEither genInt genInt
     y <- forAllWith (const "y") $ genValidation $ genEither genInt genFunction
     z <- forAllWith (const "z") $ genValidation $ const <$> genFunction
     let f = fmap Right

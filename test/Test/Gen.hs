@@ -34,9 +34,9 @@ genFunction = genInt >>= \n -> Gen.element
 genInt :: Gen Int
 genInt = Gen.enumBounded
 
--- | Generate an 'Int' withing the range of @2-5@.
+-- | Generate a positive 'Int' within the range of @1-6@.
 genSmallInt :: Gen Int
-genSmallInt = Gen.int (Range.linear 2 5)
+genSmallInt = Gen.int (Range.linear 1 6)
 
 -- | Generate a 'Text' of length @0-10@.
 genSmallText :: Gen Text
