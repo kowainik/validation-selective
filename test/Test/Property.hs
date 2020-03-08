@@ -19,17 +19,18 @@ module Test.Property
     ) where
 
 import Control.Applicative (Alternative (empty, (<|>)), Applicative (liftA2))
+import Control.Selective ((<*?))
+import Data.Bifunctor (bimap)
 import Data.List.NonEmpty (NonEmpty ((:|)))
 import Data.Semigroup (sconcat, stimes)
 import Data.Text (Text)
-import Validation (Validation (..))
-
 import Hedgehog (Gen, PropertyT, forAll, forAllWith, (===))
 import Test.Hspec (Spec, describe, it)
 import Test.Hspec.Hedgehog (hedgehog)
+import Validation (Validation (..))
 
-import qualified Hedgehog.Gen as Gen
-import qualified Hedgehog.Range as Range
+import Test.Gen (genEither, genFunction, genInt, genSmallInt, genSmallList, genSmallText,
+                 genValidation)
 
 
 validationLawsSpec :: Spec
@@ -71,6 +72,13 @@ validationLawsSpec = describe "Validation Property Tests" $ do
             alternativeAssociativity
         it "Right Identity: x <|> empty ≡ x" alternativeRightIdentity
         it "Left Identity:  empty <|> x ≡ x" alternativeLeftIdentity
+    describe "Selective instance for Validation" $ do
+        it "Identity: x <*? pure id ≡ either id id <$> x"
+            selectiveIdentity
+        it "Distributivity: pure x <*? (y *> z) ≡ (pure x <*? y) *> (pure x <*? z)"
+            selectiveDistributivity
+        it "Associativity: x <*? (y <*? z) ≡ (f <$> x) <*? (g <$> y) <*? (h <$> z)"
+            selectiveAssociativity
 
 -- | Helper alias for tests.
 type Property = PropertyT IO ()
@@ -93,7 +101,7 @@ semigroupConcatenation = do
 semigroupTimes :: Property
 semigroupTimes = do
     a <- forAll $ genValidation genSmallText
-    n <- forAll (Gen.int (Range.linear 2 5))
+    n <- forAll genSmallInt
     stimes n a === foldr1 (<>) (replicate n a)
 
 ----------------------------------------------------------------------------
@@ -200,6 +208,32 @@ alternativeLeftIdentity = hedgehog $ do
     (empty <|> x) === x
 
 ----------------------------------------------------------------------------
+-- Selective instance properties
+----------------------------------------------------------------------------
+
+selectiveIdentity :: Property
+selectiveIdentity = do
+    x <- forAll $ genValidation $ genEither genSmallText genSmallText
+    (x <*? pure id) === (either id id <$> x)
+
+selectiveDistributivity :: Property
+selectiveDistributivity = do
+    x <- forAll $ genEither genInt genInt
+    y <- forAllWith (const "y") $ genValidation genFunction
+    z <- forAllWith (const "z") $ genValidation genFunction
+    (pure x <*? (y *> z)) === ((pure x <*? y) *> (pure x <*? z))
+
+selectiveAssociativity :: Property
+selectiveAssociativity = do
+    x <- forAll $ genValidation $ genEither genInt genInt
+    y <- forAllWith (const "y") $ genValidation $ genEither genInt genFunction
+    z <- forAllWith (const "z") $ genValidation $ const <$> genFunction
+    let f = fmap Right
+    let g a b = bimap (,b) ($ b) a
+    let h = uncurry
+    (x <*? (y <*? z)) === ((f <$> x) <*? (g <$> y) <*? (h <$> z))
+
+----------------------------------------------------------------------------
 -- Property helpers
 ----------------------------------------------------------------------------
 
@@ -219,37 +253,3 @@ checkAssotiativityFor gen op = hedgehog $ do
     b <- forAll gen
     c <- forAll gen
     a `op` (b `op` c) === (a `op` b) `op` c
-
-----------------------------------------------------------------------------
--- Generators
-----------------------------------------------------------------------------
-
--- | Generate a simple function from the list.
-genFunction :: Gen (Int -> Int)
-genFunction = genInt >>= \n -> Gen.element
-    [ id
-    , (+ n)
-    , (* n)
-    , const n
-    , (n -)
-    , subtract n
-    ]
-
--- | Generate an 'Int' within the range of @(-10, 10)@.
-genInt :: Gen Int
-genInt = Gen.enumBounded
-
--- | Generate a 'Text' of length @3-7@.
-genSmallText :: Gen Text
-genSmallText = Gen.text (Range.linear 0 10) Gen.unicode
-
--- | Generate a small list of the given generated elements.
-genSmallList :: Gen a -> Gen [a]
-genSmallList = Gen.list (Range.linear 0 6)
-
--- | Generate a 'Validation'.
-genValidation :: Gen a -> Gen (Validation [Text] a)
-genValidation gen = Gen.choice
-    [ Success <$> gen
-    , Failure <$> Gen.list (Range.linear 0 5) genSmallText
-    ]
