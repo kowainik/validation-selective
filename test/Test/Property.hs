@@ -199,7 +199,7 @@ applicativeApViaLiftA2 :: Property
 applicativeApViaLiftA2 = hedgehog $ do
     vf <- forAllWith (const "f") $ genValidation genFunction
     vx <- forAll $ genValidation genInt
-    (vf <*> vx) === (liftA2 id vf vx)
+    (vf <*> vx) === liftA2 id vf vx
 
 applicativeLiftA2ViaAp :: Property
 applicativeLiftA2ViaAp = hedgehog $ do
