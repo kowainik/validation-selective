@@ -60,7 +60,8 @@ library
   import:              common-options
   hs-source-dirs:      src
   exposed-modules:     Validation
-  build-depends:       selective ^>= 0.4
+  build-depends:       deepseq ^>= 1.4.3.0
+                     , selective ^>= 0.4
 
 test-suite validation-selective-test
   import:              common-options

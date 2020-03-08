@@ -14,6 +14,8 @@ import Test.DocTest (doctest)
 main :: IO ()
 main = doctest
     $ "-XInstanceSigs"
+    : "-XDeriveAnyClass"
+    : "-XDeriveGeneric"
     : "-XDerivingStrategies"
     : "-XGeneralizedNewtypeDeriving"
     : "-XLambdaCase"

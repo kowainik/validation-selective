@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP                  #-}
 {-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE DeriveAnyClass       #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -49,10 +50,12 @@ module Validation
        ) where
 
 import Control.Applicative (Alternative (..), Applicative (..))
+import Control.DeepSeq (NFData, NFData1, NFData2 (..))
 import Control.Selective (Selective (..))
 import Data.Bifunctor (Bifunctor (..))
 import Data.Foldable (Foldable (..))
 import Data.Kind (Constraint)
+import GHC.Generics (Generic, Generic1)
 import GHC.TypeLits (ErrorMessage (..), TypeError)
 
 #if MIN_VERSION_base(4,10,0)
@@ -126,7 +129,8 @@ Failure ["Not enough RAM","Not enough CPUs"]
 data Validation e a
     = Failure e
     | Success a
-    deriving stock (Eq, Ord, Show)
+    deriving stock (Eq, Ord, Show, Generic, Generic1)
+    deriving anyclass (NFData, NFData1)
 
 instance Functor (Validation e) where
     fmap :: (a -> b) -> Validation e a -> Validation e b
@@ -493,6 +497,11 @@ instance Bitraversable Validation where
     bitraverse _ g (Success a) = Success <$> g a
     {-# INLINE bitraverse #-}
 #endif
+
+instance NFData2 Validation where
+    liftRnf2 :: (e -> ()) -> (a -> ()) -> Validation e a -> ()
+    liftRnf2 f _s (Failure x) = f x
+    liftRnf2 _f s (Success y) = s y
 
 {- | Transform a 'Validation' into an 'Either'.
 
