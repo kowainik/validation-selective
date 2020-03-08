@@ -439,7 +439,7 @@ instance Foldable (Validation e) where
 
     product :: Num a => Validation e a -> a
     product = \case
-        Failure _ -> 0
+        Failure _ -> 1
         Success a -> a
     {-# INLINE product #-}
 
