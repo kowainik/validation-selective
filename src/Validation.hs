@@ -45,6 +45,16 @@ module Validation
          -- $use
 
          -- * Interface functions
+       , isFailure
+       , isSuccess
+       , validation
+       , failures
+       , successes
+       , partitionValidations
+       , fromFailure
+       , fromSuccess
+
+         -- ** 'Either' conversion
        , validationToEither
        , eitherToValidation
        ) where
@@ -503,6 +513,37 @@ instance NFData2 Validation where
     liftRnf2 f _s (Failure x) = f x
     liftRnf2 _f s (Success y) = s y
 
+----------------------------------------------------------------------------
+-- Custom errors
+----------------------------------------------------------------------------
+
+{- | ⚠️__CAUTION__⚠️ This instance is for custom error display only.
+
+It's not possible to implement lawful 'Monad' instance for 'Validation'.
+
+In case it is used by mistake, the user will see the following:
+
+>>> Success 42 >>= \n -> if even n then Success n else Failure ["Not even"]
+...
+... Type 'Validation' doesn't have lawful 'Monad' instance
+      which means that you can't use 'Monad' methods with 'Validation'.
+...
+-}
+instance (NoValidationMonadError, Semigroup e) => Monad (Validation e) where
+    return = error "Unreachable Validation instance of Monad"
+    (>>=)  = error "Unreachable Validation instance of Monad"
+
+-- | Helper type family to produce error messages
+type family NoValidationMonadError :: Constraint where
+    NoValidationMonadError = TypeError
+        ( 'Text "Type 'Validation' doesn't have lawful 'Monad' instance"
+        ':$$: 'Text "which means that you can't use 'Monad' methods with 'Validation'."
+        )
+
+----------------------------------------------------------------------------
+-- Interface
+----------------------------------------------------------------------------
+
 {- | Transform a 'Validation' into an 'Either'.
 
 >>> validationToEither (Success "whoop")
@@ -531,29 +572,104 @@ eitherToValidation = \case
     Right a -> Success a
 {-# INLINE eitherToValidation #-}
 
-----------------------------------------------------------------------------
--- Custom errors
-----------------------------------------------------------------------------
+{- | Predicate on if the given 'Validation' is 'Failure'.
 
-{- | ⚠️__CAUTION__⚠️ This instance is for custom error display only.
-
-It's not possible to implement lawful 'Monad' instance for 'Validation'.
-
-In case it is used by mistake, the user will see the following:
-
->>> Success 42 >>= \n -> if even n then Success n else Failure ["Not even"]
-...
-... Type 'Validation' doesn't have lawful 'Monad' instance
-      which means that you can't use 'Monad' methods with 'Validation'.
-...
+>>> isFailure (Failure 'e')
+True
+>>> isFailure (Success 'a')
+False
 -}
-instance (NoValidationMonadError, Semigroup e) => Monad (Validation e) where
-    return = error "Unreachable Validation instance of Monad"
-    (>>=)  = error "Unreachable Validation instance of Monad"
+isFailure :: Validation e a -> Bool
+isFailure = \case
+    Failure _ -> True
+    Success _ -> False
 
--- | Helper type family to produce error messages
-type family NoValidationMonadError :: Constraint where
-    NoValidationMonadError = TypeError
-        ( 'Text "Type 'Validation' doesn't have lawful 'Monad' instance"
-        ':$$: 'Text "which means that you can't use 'Monad' methods with 'Validation'."
-        )
+{- | Predicate on if the given 'Validation' is 'Success'.
+
+>>> isSuccess (Success 'a')
+True
+>>> isSuccess (Failure 'e')
+False
+-}
+isSuccess :: Validation e a -> Bool
+isSuccess = \case
+    Success _ -> True
+    Failure _ -> False
+
+{- | Transforms the value of the given 'Validation' into @x@ using provided
+functions that can transform 'Failure' and 'Success' value into the resulting
+type respectively.
+
+>>> let myValidation = validation (<> " world!") (show . (* 10))
+>>> myValidation (Success 100)
+"1000"
+>>> myValidation (Failure "Hello")
+"Hello world!"
+-}
+validation :: (e -> x) -> (a -> x) -> Validation e a -> x
+validation fe fa = \case
+    Success a -> fa a
+    Failure e -> fe e
+
+{- | Filters out all 'Failure' values into the new list of @e@s from the given
+list of 'Validation's.
+
+Note that the order is preserved.
+
+>>> failures [Failure "Hello", Success 1, Failure "world", Success 2, Failure "!" ]
+["Hello","world","!"]
+-}
+failures :: [Validation e a] -> [e]
+failures v = [e | Failure e <- v]
+{-# INLINE failures #-}
+
+{- | Filters out all 'Success' values into the new list of @a@s from the given
+list of 'Validation's.
+
+Note that the order is preserved.
+
+>>> successes [Failure "Hello", Success 1, Failure "world", Success 2, Failure "!" ]
+[1,2]
+-}
+successes :: [Validation e a] -> [a]
+successes v = [a | Success a <- v]
+{-# INLINE successes #-}
+
+{- | Redistributes the given list of 'Validation's into two lists of @e@s and
+@e@s, where the first list contains all values of 'Failure's and the second
+one — 'Success'es correspondingly.
+
+Note that the order is preserved.
+
+>>> partitionValidations [Failure "Hello", Success 1, Failure "world", Success 2, Failure "!" ]
+(["Hello","world","!"],[1,2])
+-}
+partitionValidations :: [Validation e a] -> ([e], [a])
+partitionValidations = go
+  where
+    go :: [Validation e a] -> ([e], [a])
+    go []               = ([], [])
+    go (Failure e:rest) = first  (e:) $ go rest
+    go (Success a:rest) = second (a:) $ go rest
+
+{- | Returns the contents of a 'Failure'-value or a default value otherwise.
+
+>>> fromFailure "default" (Failure "failure")
+"failure"
+>>> fromFailure "default" (Success 1)
+"default"
+-}
+fromFailure :: e -> Validation e a -> e
+fromFailure _ (Failure e) = e
+fromFailure e _           = e
+
+{- | Returns the contents of a 'Success'-value or a default value otherwise.
+
+>>> fromSuccess 42 (Success 1)
+1
+>>> fromSuccess 42 (Failure "failure")
+42
+-}
+fromSuccess :: a -> Validation e a -> a
+fromSuccess _ (Success a) = a
+fromSuccess a _           = a
