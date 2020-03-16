@@ -2,7 +2,9 @@
 -}
 
 module Test.Gen
-    ( genValidation
+    ( Property
+    , genValidation
+    , genValidationList
     , genFunction
     , genFunction2
     , genInt
@@ -13,12 +15,15 @@ module Test.Gen
     ) where
 
 import Data.Text (Text)
-import Hedgehog (Gen, MonadGen)
+import Hedgehog (Gen, MonadGen, PropertyT)
 import Validation (Validation (..))
 
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 
+
+-- | Helper alias for tests.
+type Property = PropertyT IO ()
 
 -- | Generate a simple unary function from the list.
 genFunction :: Gen (Int -> Int)
@@ -70,3 +75,7 @@ genEither genE genA = Gen.sized $ \n -> Gen.frequency
     [ (2, Left <$> genE)
     , (1 + fromIntegral n, Right <$> genA)
     ]
+
+-- | Generate a list of 'Validation's.
+genValidationList :: Gen a -> Gen [Validation [Text] a]
+genValidationList = Gen.list (Range.linear 0 200) . genValidation
