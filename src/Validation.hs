@@ -57,6 +57,12 @@ module Validation
          -- ** 'Either' conversion
        , validationToEither
        , eitherToValidation
+
+         -- ** 'NonEmpty' combinators
+         -- $nonEmptyCombinators
+       , failure
+       , failureIf
+       , failureUnless
        ) where
 
 import Control.Applicative (Alternative (..), Applicative (..))
@@ -64,10 +70,11 @@ import Control.DeepSeq (NFData, NFData1, NFData2 (..))
 import Control.Selective (Selective (..))
 import Data.Bifoldable (Bifoldable (..))
 import Data.Bifunctor (Bifunctor (..))
-import Data.Data (Data)
 import Data.Bitraversable (Bitraversable (..))
+import Data.Data (Data)
 import Data.Foldable (Foldable (..))
 import Data.Kind (Constraint)
+import Data.List.NonEmpty (NonEmpty (..))
 import GHC.Generics (Generic, Generic1)
 import GHC.TypeLits (ErrorMessage (..), TypeError)
 
@@ -76,7 +83,6 @@ import GHC.TypeLits (ErrorMessage (..), TypeError)
 -- >>> import Control.Applicative (liftA3)
 -- >>> import Control.Selective (ifS)
 -- >>> import Data.Char (isDigit)
--- >>> import Data.List.NonEmpty (NonEmpty (..))
 -- >>> import Data.Maybe (listToMaybe)
 -- >>> import Text.Read (readMaybe)
 
@@ -941,3 +947,77 @@ fromFailure e _           = e
 fromSuccess :: a -> Validation e a -> a
 fromSuccess _ (Success a) = a
 fromSuccess a _           = a
+
+----------------------------------------------------------------------------
+-- NonEmpty Combinators
+----------------------------------------------------------------------------
+
+{- $nonEmptyCombinators
+
+When using 'Validation', we often work with the 'NonEmpty' list of errors, and
+those lists will be concatenated later.
+
+The following functions aim to help with writing more concise code.
+
+For example, instead of (perfectly fine) code like:
+
+>>> :{
+validateNameVerbose :: String -> Validation (NonEmpty String) String
+validateNameVerbose name
+    | null name = Failure ("Empty Name" :| [])
+    | otherwise = Success name
+:}
+
+one can write simply:
+
+>>> :{
+validateNameSimple :: String -> Validation (NonEmpty String) String
+validateNameSimple name = name <$ failureIf (null name) "Empty Name"
+:}
+
+-}
+
+{- | Create a 'Failure' of 'NonEmpty' list with a single given error.
+
+>>> failure "I am a failure"
+Failure ("I am a failure" :| [])
+-}
+failure :: e -> Validation (NonEmpty e) a
+failure e = Failure (e :| [])
+{-# INLINE failure #-}
+
+{- | Returns a 'Failure' in case of the given predicate is 'True'.
+Returns @'Success' '()'@ otherwise.
+
+>>> let shouldFail = (==) "I am a failure"
+>>> failureIf (shouldFail "I am a failure") "I told you so"
+Failure ("I told you so" :| [])
+>>> failureIf (shouldFail "I am NOT a failure") "okay"
+Success ()
+-}
+failureIf :: Bool -> e -> Validation (NonEmpty e) ()
+failureIf p e
+    | p = failure e
+    | otherwise = Success ()
+{-# INLINE failureIf #-}
+
+{- | Returns a 'Failure' unless the given predicate is 'True'.
+Returns @'Success' '()'@ in case of the predicate is satisfied.
+
+Similar to 'failureIf' with the reversed predicate.
+
+@
+'failureUnless' p ≡ 'failureIf' (not p)
+@
+
+>>> let shouldFail = (==) "I am a failure"
+>>> failureUnless (shouldFail "I am a failure") "doesn't matter"
+Success ()
+>>> failureUnless (shouldFail "I am NOT a failure") "I told you so"
+Failure ("I told you so" :| [])
+-}
+failureUnless :: Bool -> e -> Validation (NonEmpty e) ()
+failureUnless p e
+    | p = Success ()
+    | otherwise = failure e
+{-# INLINE failureUnless #-}
