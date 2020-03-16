@@ -53,10 +53,10 @@ popular validation packages in the Haskell ecosystem:
   since it depends on more Haskell libraries like `profunctors`,
   `bifunctors`, `semigroupoids`. But it also provides prisms for
   `Validation` and some combinators for `Either`.
-+ [`validation`](https://hackage.haskell.org/package/either):
++ [`validation`](https://hackage.haskell.org/package/validation):
   `Validation` from [Queensland Functional Programming Lab](https://qfpl.io/).
-  Depends on `lens`, which makes it even heavier but also has richer
-  interface than the `either` package.
+  Depends on `lens`, which makes it even heavier but also have richer
+  interface compared to the `either` package.
 
 ## How to use
 
