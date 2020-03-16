@@ -82,8 +82,8 @@ import GHC.TypeLits (ErrorMessage (..), TypeError)
 
 {- $use
 
-This section contains typical 'Validation' usage example. Let's say we
-have a form  with fields where you can input your information.
+This section contains the typical 'Validation' usage example. Let's say we
+have a form with fields where you can input your login information.
 
 >>> :{
 data Form = Form
@@ -94,7 +94,7 @@ data Form = Form
 
 
 This @Form@ data type can represent values of some text fields on the
-web page or inside GUI application. Our goal is to create a value of
+web page or inside the GUI application. Our goal is to create a value of
 the custom @User@ data type from the @Form@ fields.
 
 First, let's define our @User@ type and additional @newtype@s for more
@@ -119,8 +119,8 @@ data User = User
     } deriving stock (Show)
 :}
 
-We can easily create @User@ from @Form@ in /unsafe/ way by wrapping
-each form field into corresponding @newtype@:
+We can easily create a @User@ from the @Form@ in the /unsafe/ way by wrapping
+each form field into the corresponding @newtype@:
 
 >>> :{
 unsafeUserFromForm :: Form -> User
@@ -131,7 +131,7 @@ unsafeUserFromForm Form{..} = User
 :}
 
 However, this conversion is unsafe (as name suggests) since @Form@ can
-contain /invalid/ data. So. before creating @User@ we want to check
+contain /invalid/ data. So, before creating a @User@ we want to check
 whether all @Form@ fields satisfy our preconditions. Specifically:
 
 1. User name must not be empty.
@@ -141,8 +141,8 @@ whether all @Form@ fields satisfy our preconditions. Specifically:
 'Validation' offers __modular__ and __composable__ way of defining and
 outputting all validation failures.
 
-It's a good practice to define all possible errors as a single sum
-type, so let's do this:
+It is a good practice to define all possible errors as a single sum
+type, so let's go ahead:
 
 >>> :{
 data FormValidationError
@@ -152,7 +152,7 @@ data FormValidationError
     deriving stock (Show)
 :}
 
-With 'Validation' we can define checks for separate fields
+With 'Validation' we can define checks for individual fields
 independently and compose them later. First, let's start with defining
 validation for the name:
 
@@ -193,7 +193,7 @@ validatePasswordDigit password
     | otherwise = Failure (NoDigitPassword :| [])
 :}
 
-Now we can easily compose those two checks to validate password:
+Now we can easily compose those two checks to validate a password:
 
 >>> :{
 validatePassword :: String -> Validation (NonEmpty FormValidationError) Password
@@ -270,8 +270,8 @@ instance Functor (Validation e) where
     _ <$ Failure e = Failure e
     {-# INLINE (<$) #-}
 
-{- | 'Semigroup' allows merging two 'Validation' values into one,
-accumulating all errors, but if both values are 'Success' their
+{- | 'Semigroup' allows merging two 'Validation' values into one. Specifically, it allows
+accumulating all errors, and, if both values are 'Success'ful, their
 results are combined with '<>'.
 
 __Examples__
