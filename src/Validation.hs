@@ -832,7 +832,7 @@ order to see the main properties and differences between these two data types:
 == Comparison in example
 
 For the sake of better illustration of the difference between 'Either' and
-'Validation', let's go through the example of parsing done with the usage of
+'Validation', let's go through the example of how parsing is done with the usage of
 these types.
 
 Our goal is to parse two given 'String's and return their sum in case if both of
