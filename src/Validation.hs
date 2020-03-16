@@ -445,63 +445,121 @@ behavior.
 
 ==== __Examples__
 
-The following usage example is taken from the [Selective Applicative Functors](https://www.staff.ncl.ac.uk/andrey.mokhov/selective-functors.pdf)
-paper by Andrey Mokhov, Georgy Lukyanov, Simon Marlow, Jeremie Dimino.
-
-Let's say we have a shape — a circle or a rectangle:
+To understand better, how 'Selective' can be helpful, let's consider a
+typical usage example with validating passwords.
 
 >>> :{
-newtype Radius = Radius Int deriving newtype (Num, Show)
-newtype Height = Height Int deriving newtype (Num, Show)
-newtype Width  = Width  Int deriving newtype (Num, Show)
+newtype Password = Password
+    { unPassword :: String
+    } deriving stock (Show)
 :}
 
+When user enters a password in some form, we want to check the
+following conditions:
+
+1. Password must not be empty.
+2. Password must contain at least 8 characters.
+3. Password must contain at least 1 digit.
+
+As in the previous usage example with form validation, let's introduce
+a custom data type to represent all possible errors.
+
 >>> :{
-data Shape
-    = Circle Radius
-    | Rectangle Width Height
+data PasswordValidationError
+    = EmptyPassword
+    | ShortPassword
+    | NoDigitPassword
     deriving stock (Show)
 :}
 
-We define a function that constructs a shape given a choice of the
-shape @x@, and the shape’s parameters (@r@, @w@, and @h@) in an
-arbitrary selective functor @f@. You can think of the inputs as
-results of reading the corresponding fields from a web form, where @x@
-is a checkbox, and all other fields are numeric textboxes, some of
-which may be empty.
+And, again, we can implement independent functions to validate all these cases:
+
+>>> type PasswordValidation = Validation (NonEmpty PasswordValidationError) Password
 
 >>> :{
-shape :: Selective f => f Bool -> f Radius -> f Width -> f Height -> f Shape
-shape x r w h = ifS x (Circle <$> r) (Rectangle <$> w <*> h)
+validateEmptyPassword :: String -> PasswordValidation
+validateEmptyPassword password
+    | null password = Failure (EmptyPassword :| [])
+    | otherwise = Success (Password password)
 :}
-
-We choose @f = 'Validation' [String]@ to report the errors that
-occurred when reading values from the form. Let us see how this works.
-
->>> shape (Success True) (Success 1) (Failure ["width?"]) (Failure ["height?"])
-Success (Circle 1)
->>> shape (Success False) (Failure ["radius?"]) (Success 2) (Success 3)
-Success (Rectangle 2 3)
->>> shape (Success False) (Success 1) (Failure ["width?"]) (Failure ["height?"])
-Failure ["width?","height?"]
->>> shape (Failure ["choice?"]) (Failure ["radius?"]) (Success 2) (Failure ["height?"])
-Failure ["choice?"]
-
-In the last example, since the shape’s choice could not be read, we do
-not report any subsequent errors. But it does not mean we are
-short-circuiting the validation: we will continue accumulating errors
-as soon as we get out of the failed conditional, as demonstrated
-below.
 
 >>> :{
-twoShapes :: Applicative f => f Shape -> f Shape -> f (Shape, Shape)
-twoShapes = liftA2 (,)
+validateShortPassword :: String -> PasswordValidation
+validateShortPassword password
+    | length password < 8 = Failure (ShortPassword :| [])
+    | otherwise = Success (Password password)
 :}
 
->>> s1 = shape (Failure ["choice 1?"]) (Success 1) (Failure ["width 1?"]) (Success 3)
->>> s2 = shape (Success False) (Success 1) (Success 2) (Failure ["height 2?"])
->>> twoShapes s1 s2
-Failure ["choice 1?","height 2?"]
+>>> :{
+validatePasswordDigit :: String -> PasswordValidation
+validatePasswordDigit password
+    | any isDigit password = Success (Password password)
+    | otherwise = Failure (NoDigitPassword :| [])
+:}
+
+And we can easily compose all these checks into single validation for
+@Password@ using 'Applicative' instance:
+
+>>> :{
+validatePassword :: String -> PasswordValidation
+validatePassword password =
+    validateEmptyPassword password
+    *> validateShortPassword password
+    *> validatePasswordDigit password
+:}
+
+However, if we try using this function, we can notice a problem
+immediately:
+
+>>> validatePassword ""
+Failure (EmptyPassword :| [ShortPassword,NoDigitPassword])
+
+Due to the nature of the 'Applicative' instance for 'Validation', we
+run all checks and combine all possible errors. But you can notice
+that if password is empty, it doesn't make sense to run other
+validations. The fact that the password is empty implies that password
+is shorter than 8 characters.
+
+You may say that check for empty password is redundant because empty
+password is a special case of a short password. However, when using
+'Validation', we want to display readable and friendly errors to
+users, so they know how to fix errors and can act correspondingly.
+
+This behaviour could be achieved easily if 'Validation' had the
+'Monad' instance. But it can't have a lawful 'Monad'
+instance. Fortunately, the 'Selective' instance for 'Validation' can
+help with our problem. But to solve it, we need to write our password
+validation in a slightly different way.
+
+First, we need to write a function that checks whether the password is
+empty:
+
+>>> :{
+checkEmptyPassword :: String -> Validation e Bool
+checkEmptyPassword = Success . null
+:}
+
+Now we can use the @ifS@ function from the @selective@ package to
+branch on the result of @checkEmptyPassword@:
+
+>>> :{
+validatePassword :: String -> PasswordValidation
+validatePassword password = ifS
+    (checkEmptyPassword password)
+    (Failure $ EmptyPassword :| [])
+    (validateShortPassword password *> validatePasswordDigit password)
+:}
+
+With this implementation we achieved our desired behavior:
+
+>>> validatePassword ""
+Failure (EmptyPassword :| [])
+>>> validatePassword "abc"
+Failure (ShortPassword :| [NoDigitPassword])
+>>> validatePassword "abc123"
+Failure (ShortPassword :| [])
+>>> validatePassword "security567"
+Success (Password {unPassword = "security567"})
 -}
 instance Semigroup e => Selective (Validation e) where
     select :: Validation e (Either a b) -> Validation e (a -> b) -> Validation e b
