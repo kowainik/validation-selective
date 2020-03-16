@@ -139,10 +139,16 @@ whether all @Form@ fields satisfy our preconditions. Specifically:
 3. Password should contain at least 1 digit.
 
 'Validation' offers __modular__ and __composable__ way of defining and
-outputting all validation failures.
+outputting all validation failures which means:
 
-It is a good practice to define all possible errors as a single sum
-type, so let's go ahead:
+1. __Modular__: define validation checks for different fields
+independently.
+2. __Composable__: combine smaller validations easily into a
+validation of a bigger type.
+
+Before implementing @Form@ validation, we need to introduce a type for
+representing our validation errors. It is a good practice to define
+all possible errors as a single sum type, so let's go ahead:
 
 >>> :{
 data FormValidationError
@@ -165,7 +171,7 @@ validateName name
 
 You can notice a few things about this function:
 
-1. All errors are collected in @NonEmpty@, since we want to have
+1. All errors are collected in 'NonEmpty', since we want to have
 guarantees that in case of errors we have at least one failure.
 2. It wraps the result into @UserName@ to tell that validation is
 passed.
@@ -177,7 +183,9 @@ Success "John"
 >>> validateName ""
 Failure (EmptyName :| [])
 
-Now we can define all checks for the password separately:
+Since 'Validation' provides __modular__ interface for defining checks,
+we now can define all validation functions for the password
+separately:
 
 >>> :{
 validateShortPassword :: String -> Validation (NonEmpty FormValidationError) Password
@@ -193,11 +201,32 @@ validatePasswordDigit password
     | otherwise = Failure (NoDigitPassword :| [])
 :}
 
-Now we can easily compose those two checks to validate a password:
+After we've implemented validations for different @Form@ fields, it's
+time to combine them together! 'Validation' offers several ways to
+compose different validations. These ways are provided via different
+instances of common Haskell typeclasses, specifically:
+
+* 'Semigroup'
+* 'Alternative'
+* 'Applicative'
+
+'Semigroup' allows combining values inside both 'Failure' and
+'Success' but this requires both values to implement the 'Semigroup'
+instance. This doesn't fit our goal, since @Password@ can't have a
+reasonble 'Semigroup' instance.
+
+'Alternative' returns first 'Success' or combines all 'Failure's. We
+can notice that 'Alternative' also doesn't work for us here.
+
+In our case we are interested in collecting all possible errors and
+returning 'Success' only when all checks are passed. Fortunately,
+'Applicative' is exactly what we need here. So we can use the '*>'
+operator to compose all checks for password:
 
 >>> :{
 validatePassword :: String -> Validation (NonEmpty FormValidationError) Password
-validatePassword password = validateShortPassword password *> validatePasswordDigit password
+validatePassword password =
+    validateShortPassword password *> validatePasswordDigit password
 :}
 
 Let's see how it works:
@@ -210,7 +239,8 @@ Failure (ShortPassword :| [])
 Success "abcd12345"
 
 After we've implemented validations for all fields, we can compose
-them together:
+them together to produce validation for the whole @User@. As before,
+we are going to use the 'Applicative' instance:
 
 >>> :{
 validateForm :: Form -> Validation (NonEmpty FormValidationError) User
@@ -236,17 +266,29 @@ validation failures or validation success. Unlike 'Either', which
 returns only the first error, 'Validation' accumulates all errors
 using the 'Semigroup' typeclass.
 
-Usually @'Validation' e a@ is used like:
+Usually type variables in @'Validation' e a@ are used as follows:
 
-* @'Validation' ['String'] User@: either list of 'String' error messages
-  or a validated value of a custom @User@ type.
-* @'Validation' (NonEmpty 'String') User@: similar to previous
-  example, but list of failures guaranteed to be non-empty in case of
-  validation failure.
+* @e@: is a list or set of failure messages or values of some error data type.
+* @a@: is some domain type denoting successful validation result.
+
+Some typical use-cases:
+
+* @'Validation' ['String'] User@
+
+    * Either list of 'String' error messages or a validated value of a
+      custom @User@ type.
+
+* @'Validation' ('NonEmpty' UserValidationError) User@
+
+    * Similar to previous example, but list of failures guaranteed to
+      be non-empty in case of validation failure, and it stores values
+      of some custom error type.
 -}
 data Validation e a
-    = Failure e  -- ^ Validation failure. The @e@ type has to implement the 'Semigroup' instance in most cases.
-    | Success a  -- ^ Successfull validation result of type @a@.
+    = Failure e
+    -- ^ Validation failure. The @e@ type is supposed to implement the 'Semigroup' instance.
+    | Success a
+    -- ^ Successful validation result of type @a@.
     deriving stock (Eq, Ord, Show, Generic, Generic1, Data)
     deriving anyclass (NFData, NFData1)
 
@@ -270,9 +312,16 @@ instance Functor (Validation e) where
     _ <$ Failure e = Failure e
     {-# INLINE (<$) #-}
 
-{- | 'Semigroup' allows merging two 'Validation' values into one. Specifically, it allows
-accumulating all errors, and, if both values are 'Success'ful, their
-results are combined with '<>'.
+{- | 'Semigroup' allows merging multiple 'Validation's into single one
+by combining values inside both 'Failure' and 'Success'. The '<>'
+operator merges two 'Validation's following the below rules:
+
+1. If both values are 'Failure's, returns a new 'Failure' with
+accumulated errors.
+2. If both values are 'Success'ful, returns a new 'Success' with
+combined success using 'Semigroup' for values inside 'Success'.
+3. If one value is 'Failure' and another one is 'Success', then
+'Failure' is returned.
 
 __Examples__
 
@@ -287,6 +336,8 @@ Success [9,15]
 Failure ["WRONG","FAIL"]
 >>> success1 <> failure1
 Failure ["WRONG"]
+>>> failure2 <> success1 <> success2 <> failure1
+Failure ["FAIL","WRONG"]
 -}
 instance (Semigroup e, Semigroup a) => Semigroup (Validation e a) where
     (<>) :: Validation e a -> Validation e a -> Validation e a
@@ -338,12 +389,6 @@ Failure ["WRONG","FAIL"]
 
 Implementations of all functions are lazy and they correctly work if some
 arguments are not fully evaluated.
-
->>> :{
-isFailure :: Validation e a -> Bool
-isFailure (Failure _) = True
-isFailure (Success _) = False
-:}
 
 >>> failure1 *> failure2
 Failure ["WRONG","FAIL"]
