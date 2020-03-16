@@ -54,15 +54,16 @@ module Validation
        , fromFailure
        , fromSuccess
 
-         -- ** 'Either' conversion
-       , validationToEither
-       , eitherToValidation
-
          -- ** 'NonEmpty' combinators
          -- $nonEmptyCombinators
        , failure
        , failureIf
        , failureUnless
+
+         -- ** 'Either' conversion
+         -- $either
+       , validationToEither
+       , eitherToValidation
        ) where
 
 import Control.Applicative (Alternative (..), Applicative (..))
@@ -808,8 +809,113 @@ type family NoValidationMonadError :: Constraint where
         )
 
 ----------------------------------------------------------------------------
--- Interface
+-- Either
 ----------------------------------------------------------------------------
+
+{- $either
+'Validation' is usually compared to the 'Either' data type due to the similarity
+in structure, nature and use case. Here is a quick table you can relate to, in
+order to see the main properties and differences between these two data types:
+
++------------------------+---------------------------+---------------------------+
+|                        | 'Either'                  | 'Validation'              |
++========================+===========================+===========================+
+| Error result           | 'Left'                    | 'Failure'                 |
++------------------------+---------------------------+---------------------------+
+| Successful result      | 'Right'                   | 'Success'                 |
++------------------------+---------------------------+---------------------------+
+| 'Applicative' instance | Stops on the first 'Left' | Aggregates all 'Failure's |
++------------------------+---------------------------+---------------------------+
+| 'Monad' instance       | Lawful instance           | __Cannot__ exist          |
++------------------------+---------------------------+---------------------------+
+
+== Comparison in example
+
+For the sake of better illustration of the difference between 'Either' and
+'Validation', let's go through the example of how parsing is done with the usage of
+these types.
+
+Our goal is to parse two given 'String's and return their sum in case if both of
+them are valid 'Int's. If any of the inputs is failing to be parsed we should
+return the @ParseError@ which we are introducing right now:
+
+>>> :{
+newtype ParseError = ParseError
+    { nonParsedString :: String
+    } deriving stock (Show)
+:}
+
+Let's first implement the parsing of single input in the 'Either' context:
+
+>>> :{
+parseEither :: String -> Either ParseError Int
+parseEither input = case readMaybe @Int input of
+    Just x  -> Right x
+    Nothing -> Left $ ParseError input
+:}
+
+And the final function for 'Either' looks like this:
+
+>>> :{
+parseSumEither :: String -> String -> Either ParseError Int
+parseSumEither str1 str2 = do
+    let x = parseEither str1
+    let y = parseEither str2
+    liftA2 (+) x y
+:}
+
+Let's now test it in action.
+
+>>> parseSumEither "1" "2"
+Right 3
+>>> parseSumEither "NaN" "42"
+Left (ParseError {nonParsedString = "NaN"})
+>>> parseSumEither "15" "Infinity"
+Left (ParseError {nonParsedString = "Infinity"})
+>>> parseSumEither "NaN" "infinity"
+Left (ParseError {nonParsedString = "NaN"})
+
+__Note__ how in the case of both failed parsing we got only the first @NaN@.
+
+To finish our comparison, let's implement the same functionality using
+'Validation' properties.
+
+>>> :{
+parseValidation :: String -> Validation (NonEmpty ParseError) Int
+parseValidation input = case readMaybe @Int input of
+    Just x  -> Success x
+    Nothing -> failure $ ParseError input
+:}
+
+>>> :{
+parseSumValidation :: String -> String -> Validation (NonEmpty ParseError) Int
+parseSumValidation str1 str2 = do
+    let x = parseValidation str1
+    let y = parseValidation str2
+    liftA2 (+) x y
+:}
+
+It looks almost completely identical except for the resulting type —
+@'Validation' ('NonEmpty' ParseError) 'Int'@. But let's see if they behave the
+same way:
+
+>>> parseSumValidation "1" "2"
+Success 3
+>>> parseSumValidation "NaN" "42"
+Failure (ParseError {nonParsedString = "NaN"} :| [])
+>>> parseSumValidation "15" "infinity"
+Failure (ParseError {nonParsedString = "infinity"} :| [])
+>>> parseSumValidation "NaN" "infinity"
+Failure (ParseError {nonParsedString = "NaN"} :| [ParseError {nonParsedString = "infinity"}])
+
+As expected, with 'Validation' we got __all__ parse 'Failure's we received on
+the way.
+
+== Combinators
+
+We are providing several functions for better integration with the 'Either'
+related code in this section.
+-}
 
 {- | Transform a 'Validation' into an 'Either'.
 
@@ -838,6 +944,10 @@ eitherToValidation = \case
     Left e  -> Failure e
     Right a -> Success a
 {-# INLINE eitherToValidation #-}
+
+----------------------------------------------------------------------------
+-- Interface
+----------------------------------------------------------------------------
 
 {- | Predicate on if the given 'Validation' is 'Failure'.
 
