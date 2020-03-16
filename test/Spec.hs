@@ -2,8 +2,11 @@ module Main (main) where
 
 import Test.Hspec (hspec)
 
-import Test.Property (validationLawsSpec)
+import Test.Laws (validationLawsSpec)
+import Test.Properties (propertiesSpec)
 
 
 main :: IO ()
-main = hspec validationLawsSpec
+main = hspec $ do
+    validationLawsSpec
+    propertiesSpec

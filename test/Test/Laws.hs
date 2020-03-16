@@ -14,7 +14,7 @@ SPDX-License-Identifier: MPL-2.0
 Maintainer: Kowainik <xrom.xkov@gmail.com>
 -}
 
-module Test.Property
+module Test.Laws
     ( validationLawsSpec
     ) where
 
@@ -24,12 +24,12 @@ import Data.Bifunctor (bimap)
 import Data.List.NonEmpty (NonEmpty ((:|)))
 import Data.Semigroup (sconcat, stimes)
 import Data.Text (Text)
-import Hedgehog (Gen, PropertyT, forAll, forAllWith, (===))
+import Hedgehog (Gen, forAll, forAllWith, (===))
 import Test.Hspec (Spec, describe, it)
 import Test.Hspec.Hedgehog (hedgehog)
 import Validation (Validation (..))
 
-import Test.Gen (genEither, genFunction, genFunction2, genInt, genSmallInt, genSmallList,
+import Test.Gen (Property, genEither, genFunction, genFunction2, genInt, genSmallInt, genSmallList,
                  genSmallText, genValidation)
 
 
@@ -84,9 +84,6 @@ validationLawsSpec = describe "Validation Property Tests" $ do
             selectiveDistributivity
         it "Associativity: x <*? (y <*? z) ≡ (f <$> x) <*? (g <$> y) <*? (h <$> z)"
             selectiveAssociativity
-
--- | Helper alias for tests.
-type Property = PropertyT IO ()
 
 ----------------------------------------------------------------------------
 -- Semigroup instance properties

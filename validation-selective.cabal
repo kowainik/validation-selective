@@ -69,7 +69,8 @@ test-suite validation-selective-test
   hs-source-dirs:      test
   main-is:             Spec.hs
   other-modules:       Test.Gen
-                       Test.Property
+                       Test.Laws
+                       Test.Properties
   build-depends:       validation-selective
                      , hedgehog ^>= 1.0
                      , hspec ^>= 2.7.1
