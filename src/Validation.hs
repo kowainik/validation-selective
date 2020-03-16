@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP                  #-}
 {-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE DeriveAnyClass       #-}
+{-# LANGUAGE DeriveDataTypeable   #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -63,6 +64,7 @@ import Control.Applicative (Alternative (..), Applicative (..))
 import Control.DeepSeq (NFData, NFData1, NFData2 (..))
 import Control.Selective (Selective (..))
 import Data.Bifunctor (Bifunctor (..))
+import Data.Data (Data)
 import Data.Foldable (Foldable (..))
 import Data.Kind (Constraint)
 import GHC.Generics (Generic, Generic1)
@@ -139,7 +141,7 @@ Failure ["Not enough RAM","Not enough CPUs"]
 data Validation e a
     = Failure e
     | Success a
-    deriving stock (Eq, Ord, Show, Generic, Generic1)
+    deriving stock (Eq, Ord, Show, Generic, Generic1, Data)
     deriving anyclass (NFData, NFData1)
 
 instance Functor (Validation e) where
