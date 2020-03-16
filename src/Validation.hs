@@ -870,6 +870,8 @@ Let's now test it in action.
 Right 3
 >>> parseSumEither "NaN" "42"
 Left (ParseError {nonParsedString = "NaN"})
+>>> parseSumEither "15" "Infinity"
+Left (ParseError {nonParsedString = "Infinity"})
 >>> parseSumEither "NaN" "infinity"
 Left (ParseError {nonParsedString = "NaN"})
 
@@ -901,6 +903,8 @@ same way:
 Success 3
 >>> parseSumValidation "NaN" "42"
 Failure (ParseError {nonParsedString = "NaN"} :| [])
+>>> parseSumValidation "15" "infinity"
+Failure (ParseError {nonParsedString = "infinity"} :| [])
 >>> parseSumValidation "NaN" "infinity"
 Failure (ParseError {nonParsedString = "NaN"} :| [ParseError {nonParsedString = "infinity"}])
 
