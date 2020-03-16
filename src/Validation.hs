@@ -170,9 +170,7 @@ validation for the name:
 
 >>> :{
 validateName :: String -> Validation (NonEmpty FormValidationError) UserName
-validateName name
-    | null name = Failure (EmptyName :| [])
-    | otherwise = Success (UserName name)
+validateName name = UserName name <$ failureIf (null name) EmptyName
 :}
 
 You can notice a few things about this function:
@@ -195,16 +193,14 @@ separately:
 
 >>> :{
 validateShortPassword :: String -> Validation (NonEmpty FormValidationError) Password
-validateShortPassword password
-    | length password < 8 = Failure (ShortPassword :| [])
-    | otherwise = Success (Password password)
+validateShortPassword password = Password password <$
+    failureIf (length password < 8) ShortPassword
 :}
 
 >>> :{
 validatePasswordDigit :: String -> Validation (NonEmpty FormValidationError) Password
-validatePasswordDigit password
-    | any isDigit password = Success (Password password)
-    | otherwise = Failure (NoDigitPassword :| [])
+validatePasswordDigit password = Password password <$
+    failureUnless (any isDigit password) NoDigitPassword
 :}
 
 After we've implemented validations for different @Form@ fields, it's
@@ -484,23 +480,20 @@ And, again, we can implement independent functions to validate all these cases:
 
 >>> :{
 validateEmptyPassword :: String -> PasswordValidation
-validateEmptyPassword password
-    | null password = Failure (EmptyPassword :| [])
-    | otherwise = Success (Password password)
+validateEmptyPassword password = Password password <$
+    failureIf (null password) EmptyPassword
 :}
 
 >>> :{
 validateShortPassword :: String -> PasswordValidation
-validateShortPassword password
-    | length password < 8 = Failure (ShortPassword :| [])
-    | otherwise = Success (Password password)
+validateShortPassword password = Password password <$
+    failureIf (length password < 8) ShortPassword
 :}
 
 >>> :{
 validatePasswordDigit :: String -> PasswordValidation
-validatePasswordDigit password
-    | any isDigit password = Success (Password password)
-    | otherwise = Failure (NoDigitPassword :| [])
+validatePasswordDigit password = Password password <$
+    failureUnless (any isDigit password) NoDigitPassword
 :}
 
 And we can easily compose all these checks into single validation for
@@ -552,7 +545,7 @@ branch on the result of @checkEmptyPassword@:
 validatePassword :: String -> PasswordValidation
 validatePassword password = ifS
     (checkEmptyPassword password)
-    (Failure $ EmptyPassword :| [])
+    (failure EmptyPassword)
     (validateShortPassword password *> validatePasswordDigit password)
 :}
 
