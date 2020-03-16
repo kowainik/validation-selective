@@ -31,10 +31,6 @@ For more examples and library tutorial, refer to Haddock:
 `Validation` data type. However, unlike other packages, it has some
 noticeable advantages:
 
-+ **Best-in-class documentation.** Official Haddock documentation
-  contains mini-tutorial, usage example, the motivation behind each
-  instance and the interface in general along with examples for
-  **each instance and function**.
 + **Lightweight**. `validation-selective` depends only on `base` and
   `selective` (which is tiny) Haskell libraries which make this
   package fast to build. So adding validation capabilities to your
@@ -44,6 +40,12 @@ noticeable advantages:
   that provides `Selective` instance for `Validation` which allows
   using `Monad`-like branching behaviour but without implementing
   wrong `Monad` instance.
++ **More algebraic instances.** `validation-selective` also provides
+  the `Alternative` instance and a more general `Semigroup` instance.
++ **Best-in-class documentation.** Official Haddock documentation
+  contains mini-tutorial, usage example, per-component comparison with
+  `Either`, the motivation behind each instance and the interface in
+  general along with examples for **each instance and function**.
 
 The below section provides per-package comparison with the most
 popular validation packages in the Haskell ecosystem:
