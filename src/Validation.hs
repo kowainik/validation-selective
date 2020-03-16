@@ -11,7 +11,7 @@ Copyright:  (c) 2014 Chris Allen, Edward Kmett
 SPDX-License-Identifier: MPL-2.0
 Maintainer: Kowainik <xrom.xkov@gmail.com>
 
-Lightweight pure validation based on 'Applicative' and 'Selective' functors.
+Lightweight pure data validation based on 'Applicative' and 'Selective' functors.
 
 'Validation' allows to accumulate all errors instead of
 short-circuting on the first error so you can display all possible
