@@ -13,13 +13,14 @@ import Test.DocTest (doctest)
 
 main :: IO ()
 main = doctest
-    $ "-XInstanceSigs"
-    : "-XDeriveAnyClass"
+    $ "-XDeriveAnyClass"
     : "-XDeriveGeneric"
     : "-XDerivingStrategies"
     : "-XGeneralizedNewtypeDeriving"
+    : "-XInstanceSigs"
     : "-XLambdaCase"
     : "-XOverloadedStrings"
+    : "-XRecordWildCards"
     : "-XScopedTypeVariables"
     : "-XTypeApplications"
     : [ "src/Validation.hs" ]

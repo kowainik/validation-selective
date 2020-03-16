@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                  #-}
 {-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE DeriveAnyClass       #-}
 {-# LANGUAGE DeriveDataTypeable   #-}
@@ -14,17 +13,17 @@ Maintainer: Kowainik <xrom.xkov@gmail.com>
 
 Lightweight pure validation based on 'Applicative' and 'Selective' functors.
 
-'Validation' is a monoidal sibling to 'Either' but 'Validation' doesn't have a
-'Monad' instance. 'Validation' allows to accumulate all errors instead of
-short-circuting on the first error so you can display all possible errors at
-once.
+'Validation' allows to accumulate all errors instead of
+short-circuting on the first error so you can display all possible
+errors at once.
 
 Common use-cases include:
 
 1. Validating each input of a form with multiple inputs.
 2. Performing multiple validations of a single value.
 
-Instances of different standard typeclasses provide various semantics:
+Instances of different standard typeclasses provide various semantics
+which can be useful in different use-cases:
 
 1. 'Semigroup': accumulate both 'Failure' and 'Success' with '<>'.
 2. 'Monoid': 'Success' that stores 'mempty'.
@@ -63,87 +62,245 @@ module Validation
 import Control.Applicative (Alternative (..), Applicative (..))
 import Control.DeepSeq (NFData, NFData1, NFData2 (..))
 import Control.Selective (Selective (..))
+import Data.Bifoldable (Bifoldable (..))
 import Data.Bifunctor (Bifunctor (..))
 import Data.Data (Data)
+import Data.Bitraversable (Bitraversable (..))
 import Data.Foldable (Foldable (..))
 import Data.Kind (Constraint)
 import GHC.Generics (Generic, Generic1)
 import GHC.TypeLits (ErrorMessage (..), TypeError)
 
-#if MIN_VERSION_base(4,10,0)
-import Data.Bifoldable (Bifoldable (..))
-import Data.Bitraversable (Bitraversable (..))
-#endif
-
 
 -- $setup
 -- >>> import Control.Applicative (liftA3)
 -- >>> import Control.Selective (ifS)
+-- >>> import Data.Char (isDigit)
+-- >>> import Data.List.NonEmpty (NonEmpty (..))
+-- >>> import Data.Maybe (listToMaybe)
+-- >>> import Text.Read (readMaybe)
 
 {- $use
 
-To give you an example of usage of 'Validation' let's take a @Computer@  data type that needs to be validated:
+This section contains the typical 'Validation' usage example. Let's say we
+have a form with fields where you can input your login information.
 
 >>> :{
-data Computer = Computer
-    { computerRam  :: !Int  -- ^ Ram in Gigabytes
-    , computerCpus :: !Int
-    } deriving stock (Eq, Show)
+data Form = Form
+    { formUserName :: !String
+    , formPassword :: !String
+    }
 :}
 
-You can validate that the computer has a minimum of 16GB of RAM:
+
+This @Form@ data type can represent values of some text fields on the
+web page or inside the GUI application. Our goal is to create a value of
+the custom @User@ data type from the @Form@ fields.
+
+First, let's define our @User@ type and additional @newtype@s for more
+type safety.
 
 >>> :{
-validateRam :: Int -> Validation [String] Int
-validateRam ram
-    | ram >= 16 = Success ram
-    | otherwise = Failure ["Not enough RAM"]
+newtype UserName = UserName
+    { unUserName :: String
+    } deriving newtype (Show)
 :}
-
-and that the processor has at least two CPUs:
 
 >>> :{
-validateCpus :: Int -> Validation [String] Int
-validateCpus cpus
-    | cpus >= 2 = Success cpus
-    | otherwise = Failure ["Not enough CPUs"]
+newtype Password = Password
+    { unPassword :: String
+    } deriving newtype (Show)
 :}
-
-You can use these functions with the 'Applicative' instance of the 'Validation'
-type to construct a validated @Computer@. You will get either (pun intended) a
-valid @Computer@ or the errors that prevent it from being considered valid.
-
-Like so:
 
 >>> :{
-mkComputer :: Int -> Int -> Validation [String] Computer
-mkComputer ram cpus = Computer
-    <$> validateRam ram
-    <*> validateCpus cpus
+data User = User
+    { userName     :: !UserName
+    , userPassword :: !Password
+    } deriving stock (Show)
 :}
 
-Using @mkComputer@ we get a @Success Computer@ or a list with all possible errors:
+We can easily create a @User@ from the @Form@ in the /unsafe/ way by wrapping
+each form field into the corresponding @newtype@:
 
->>> mkComputer 16 2
-Success (Computer {computerRam = 16, computerCpus = 2})
+>>> :{
+unsafeUserFromForm :: Form -> User
+unsafeUserFromForm Form{..} = User
+    { userName     = UserName formUserName
+    , userPassword = Password formPassword
+    }
+:}
 
->>> mkComputer 16 1
-Failure ["Not enough CPUs"]
+However, this conversion is unsafe (as name suggests) since @Form@ can
+contain /invalid/ data. So, before creating a @User@ we want to check
+whether all @Form@ fields satisfy our preconditions. Specifically:
 
->>> mkComputer 15 2
-Failure ["Not enough RAM"]
+1. User name must not be empty.
+2. Password should be at least 8 characters long.
+3. Password should contain at least 1 digit.
 
->>> mkComputer 15 1
-Failure ["Not enough RAM","Not enough CPUs"]
+'Validation' offers __modular__ and __composable__ way of defining and
+outputting all validation failures which means:
+
+1. __Modular__: define validation checks for different fields
+independently.
+2. __Composable__: combine smaller validations easily into a
+validation of a bigger type.
+
+Before implementing @Form@ validation, we need to introduce a type for
+representing our validation errors. It is a good practice to define
+all possible errors as a single sum type, so let's go ahead:
+
+>>> :{
+data FormValidationError
+    = EmptyName
+    | ShortPassword
+    | NoDigitPassword
+    deriving stock (Show)
+:}
+
+With 'Validation' we can define checks for individual fields
+independently and compose them later. First, let's start with defining
+validation for the name:
+
+>>> :{
+validateName :: String -> Validation (NonEmpty FormValidationError) UserName
+validateName name
+    | null name = Failure (EmptyName :| [])
+    | otherwise = Success (UserName name)
+:}
+
+You can notice a few things about this function:
+
+1. All errors are collected in 'NonEmpty', since we want to have
+guarantees that in case of errors we have at least one failure.
+2. It wraps the result into @UserName@ to tell that validation is
+passed.
+
+Let's see how this function works:
+
+>>> validateName "John"
+Success "John"
+>>> validateName ""
+Failure (EmptyName :| [])
+
+Since 'Validation' provides __modular__ interface for defining checks,
+we now can define all validation functions for the password
+separately:
+
+>>> :{
+validateShortPassword :: String -> Validation (NonEmpty FormValidationError) Password
+validateShortPassword password
+    | length password < 8 = Failure (ShortPassword :| [])
+    | otherwise = Success (Password password)
+:}
+
+>>> :{
+validatePasswordDigit :: String -> Validation (NonEmpty FormValidationError) Password
+validatePasswordDigit password
+    | any isDigit password = Success (Password password)
+    | otherwise = Failure (NoDigitPassword :| [])
+:}
+
+After we've implemented validations for different @Form@ fields, it's
+time to combine them together! 'Validation' offers several ways to
+compose different validations. These ways are provided via different
+instances of common Haskell typeclasses, specifically:
+
+* 'Semigroup'
+* 'Alternative'
+* 'Applicative'
+
+'Semigroup' allows combining values inside both 'Failure' and
+'Success' but this requires both values to implement the 'Semigroup'
+instance. This doesn't fit our goal, since @Password@ can't have a
+reasonble 'Semigroup' instance.
+
+'Alternative' returns first 'Success' or combines all 'Failure's. We
+can notice that 'Alternative' also doesn't work for us here.
+
+In our case we are interested in collecting all possible errors and
+returning 'Success' only when all checks are passed. Fortunately,
+'Applicative' is exactly what we need here. So we can use the '*>'
+operator to compose all checks for password:
+
+>>> :{
+validatePassword :: String -> Validation (NonEmpty FormValidationError) Password
+validatePassword password =
+    validateShortPassword password *> validatePasswordDigit password
+:}
+
+Let's see how it works:
+
+>>> validatePassword "abcd"
+Failure (ShortPassword :| [NoDigitPassword])
+>>> validatePassword "abcd1"
+Failure (ShortPassword :| [])
+>>> validatePassword "abcd12345"
+Success "abcd12345"
+
+After we've implemented validations for all fields, we can compose
+them together to produce validation for the whole @User@. As before,
+we are going to use the 'Applicative' instance:
+
+>>> :{
+validateForm :: Form -> Validation (NonEmpty FormValidationError) User
+validateForm Form{..} = User
+    <$> validateName formUserName
+    <*> validatePassword formPassword
+:}
+
+And it works like a charm:
+
+>>> validateForm (Form "" "")
+Failure (EmptyName :| [ShortPassword,NoDigitPassword])
+>>> validateForm (Form "John" "abc")
+Failure (ShortPassword :| [NoDigitPassword])
+>>> validateForm (Form "Jonh" "qwertypassword")
+Failure (NoDigitPassword :| [])
+>>> validateForm (Form "Jonh" "qwertypassword123")
+Success (User {userName = "Jonh", userPassword = "qwertypassword123"})
 -}
 
--- | 'Validation' is 'Either' with a 'Left' that is a 'Semigroup'.
+{- | 'Validation' is a polymorphic sum type for storing either all
+validation failures or validation success. Unlike 'Either', which
+returns only the first error, 'Validation' accumulates all errors
+using the 'Semigroup' typeclass.
+
+Usually type variables in @'Validation' e a@ are used as follows:
+
+* @e@: is a list or set of failure messages or values of some error data type.
+* @a@: is some domain type denoting successful validation result.
+
+Some typical use-cases:
+
+* @'Validation' ['String'] User@
+
+    * Either list of 'String' error messages or a validated value of a
+      custom @User@ type.
+
+* @'Validation' ('NonEmpty' UserValidationError) User@
+
+    * Similar to previous example, but list of failures guaranteed to
+      be non-empty in case of validation failure, and it stores values
+      of some custom error type.
+-}
 data Validation e a
     = Failure e
+    -- ^ Validation failure. The @e@ type is supposed to implement the 'Semigroup' instance.
     | Success a
+    -- ^ Successful validation result of type @a@.
     deriving stock (Eq, Ord, Show, Generic, Generic1, Data)
     deriving anyclass (NFData, NFData1)
 
+{- | Allows changing the value inside 'Success' with a given function.
+
+__Examples__
+
+>>> fmap (+1) (Success 9)
+Success 10
+>>> fmap (+1) (Failure ["wrong"])
+Failure ["wrong"]
+-}
 instance Functor (Validation e) where
     fmap :: (a -> b) -> Validation e a -> Validation e b
     fmap _ (Failure e) = Failure e
@@ -155,35 +312,45 @@ instance Functor (Validation e) where
     _ <$ Failure e = Failure e
     {-# INLINE (<$) #-}
 
-{- | This instance covers the following cases:
+{- | 'Semigroup' allows merging multiple 'Validation's into single one
+by combining values inside both 'Failure' and 'Success'. The '<>'
+operator merges two 'Validation's following the below rules:
 
-1. Both 'Success': combine values inside 'Success' with '<>'.
-2. Both 'Failure': combine values inside 'Failure' with '<>'.
-3. One 'Success', one 'Failure': return 'Failure'.
+1. If both values are 'Failure's, returns a new 'Failure' with
+accumulated errors.
+2. If both values are 'Success'ful, returns a new 'Success' with
+combined success using 'Semigroup' for values inside 'Success'.
+3. If one value is 'Failure' and another one is 'Success', then
+'Failure' is returned.
 
 __Examples__
 
->>> success1 = Success [42] :: Validation [String] [Int]
->>> success2 = Success [69] :: Validation [String] [Int]
+>>> success1 = Success [9] :: Validation [String] [Int]
+>>> success2 = Success [15] :: Validation [String] [Int]
 >>> failure1 = Failure ["WRONG"] :: Validation [String] [Int]
 >>> failure2 = Failure ["FAIL"]  :: Validation [String] [Int]
 
 >>> success1 <> success2
-Success [42,69]
-
+Success [9,15]
 >>> failure1 <> failure2
 Failure ["WRONG","FAIL"]
-
 >>> success1 <> failure1
 Failure ["WRONG"]
-
+>>> failure2 <> success1 <> success2 <> failure1
+Failure ["FAIL","WRONG"]
 -}
 instance (Semigroup e, Semigroup a) => Semigroup (Validation e a) where
     (<>) :: Validation e a -> Validation e a -> Validation e a
     (<>) = liftA2 (<>)
     {-# INLINE (<>) #-}
 
-{- | 'mempty' is @'Success' 'mempty'@.
+{- | @'mempty' :: 'Validation' e a@ is @Success@ which stores
+@'mempty' :: a@ to be consistent with the 'Semigroup' instance.
+
+__Examples__
+
+>>> mempty :: Validation String [Bool]
+Success []
 -}
 instance (Semigroup e, Semigroup a, Monoid a) => Monoid (Validation e a) where
     mempty :: Validation e a
@@ -201,38 +368,27 @@ style.
 
 __Examples__
 
->>> success1 = Success 42 :: Validation [String] Int
->>> success2 = Success 69 :: Validation [String] Int
+>>> success1 = Success 9 :: Validation [String] Int
+>>> success2 = Success 15 :: Validation [String] Int
 >>> successF = Success (* 2) :: Validation [String] (Int -> Int)
 >>> failure1 = Failure ["WRONG"] :: Validation [String] Int
 >>> failure2 = Failure ["FAIL"]  :: Validation [String] Int
 
 >>> successF <*> success1
-Success 84
-
+Success 18
 >>> successF <*> failure1
 Failure ["WRONG"]
-
 >>> (+) <$> success1 <*> success2
-Success 111
-
+Success 24
 >>> (+) <$> failure1 <*> failure2
 Failure ["WRONG","FAIL"]
-
 >>> liftA2 (+) success1 failure1
 Failure ["WRONG"]
-
 >>> liftA3 (,,) failure1 success1 failure2
 Failure ["WRONG","FAIL"]
 
 Implementations of all functions are lazy and they correctly work if some
 arguments are not fully evaluated.
-
->>> :{
-isFailure :: Validation e a -> Bool
-isFailure (Failure _) = True
-isFailure (Success _) = False
-:}
 
 >>> failure1 *> failure2
 Failure ["WRONG","FAIL"]
@@ -287,14 +443,12 @@ when you want future checks depend on previous values. 'Selective'
 allows to circumvent this limitation by providing the desired
 behavior.
 
-==== __Example__
+==== __Examples__
 
 The following usage example is taken from the [Selective Applicative Functors](https://www.staff.ncl.ac.uk/andrey.mokhov/selective-functors.pdf)
 paper by Andrey Mokhov, Georgy Lukyanov, Simon Marlow, Jeremie Dimino.
 
-
 Let's say we have a shape — a circle or a rectangle:
-
 
 >>> :{
 newtype Radius = Radius Int deriving newtype (Num, Show)
@@ -357,25 +511,22 @@ instance Semigroup e => Selective (Validation e) where
         Right b -> Success b    -- Skip second effect
     {-# INLINE select #-}
 
-{- | This instance implements the following behavior for the binary operator:
-
-1. Both 'Failure': combine values inside 'Failure' using '<>'.
-2. At least is 'Success': return the left 'Success' (the earliest 'Success').
-3. 'empty' is @'Failure' 'mempty'@.
+{- | This instance implements the behaviour when the first 'Success'
+is returned. Otherwise all 'Failure's are combined.
 
 __Examples__
 
->>> success1 = Success [42] :: Validation [String] [Int]
->>> success2 = Success [69] :: Validation [String] [Int]
+>>> success1 = Success [9] :: Validation [String] [Int]
+>>> success2 = Success [15] :: Validation [String] [Int]
 >>> failure1 = Failure ["WRONG"] :: Validation [String] [Int]
 >>> failure2 = Failure ["FAIL"]  :: Validation [String] [Int]
 
 >>> success1 <|> success2
-Success [42]
+Success [9]
 >>> failure1 <|> failure2
 Failure ["WRONG","FAIL"]
 >>> failure2 <|> success2
-Success [69]
+Success [15]
 -}
 instance (Semigroup e, Monoid e) => Alternative (Validation e) where
     empty :: Validation e a
@@ -388,7 +539,14 @@ instance (Semigroup e, Monoid e) => Alternative (Validation e) where
     Failure e <|> Failure e' = Failure (e <> e')
     {-# INLINE (<|>) #-}
 
-{- |
+{- | 'Foldable' for 'Validation' allows folding values inside 'Success'.
+
+__Examples__
+
+>>> fold (Success [16])
+[16]
+>>> fold (Failure "WRONG!" :: Validation String [Int])
+[]
 -}
 instance Foldable (Validation e) where
     fold :: Monoid m => Validation e m -> m
@@ -467,6 +625,18 @@ instance Foldable (Validation e) where
     -- maximum :: Ord a => Validation e a -> a
     -- minimum :: Ord a => Validation e a -> a
 
+{- | Traverse values inside 'Success' with some effectful computation.
+
+__Examples__
+
+>>> parseInt = readMaybe :: String -> Maybe Int
+>>> traverse parseInt (Success "42")
+Just (Success 42)
+>>> traverse parseInt (Success "int")
+Nothing
+>>> traverse parseInt (Failure ["42"])
+Just (Failure ["42"])
+-}
 instance Traversable (Validation e) where
     traverse :: Applicative f => (a -> f b) -> Validation e a -> f (Validation e b)
     traverse f (Success a) = Success <$> f a
@@ -479,6 +649,16 @@ instance Traversable (Validation e) where
         Success f -> Success <$> f
     {-# INLINE sequenceA #-}
 
+{- | Similar to 'Functor' but allows mapping of values inside both
+'Failure' and 'Success'.
+
+__Examples__
+
+>>> bimap length show (Success 50)
+Success "50"
+>>> bimap length show (Failure ["15", "9"])
+Failure 2
+-}
 instance Bifunctor Validation where
     bimap :: (e -> d) -> (a -> b) -> Validation e a -> Validation d b
     bimap f _ (Failure e) = Failure (f e)
@@ -495,20 +675,48 @@ instance Bifunctor Validation where
     second g (Success a) = Success (g a)
     {-# INLINE second #-}
 
-#if MIN_VERSION_base(4,10,0)
+{- | Similar to 'Foldable' but allows folding both 'Failure' and
+'Success' to the same monoidal value according to given functions.
+
+__Examples__
+
+>>> one x = [x]
+>>> bifoldMap id (one . show) (Success 15)
+["15"]
+>>> bifoldMap id (one . show) (Failure ["Wrong", "Fail"])
+["Wrong","Fail"]
+-}
 instance Bifoldable Validation where
 --    bifoldMap :: (e -> m) -> (a -> m) -> Validation e a -> m
     bifoldMap f _ (Failure e) = f e
     bifoldMap _ g (Success a) = g a
     {-# INLINE bifoldMap #-}
 
+{- | Similar to 'Traversable' but traverses both 'Failure' and
+'Success' with given effectful computations.
+
+__Examples__
+
+>>> parseInt = readMaybe :: String -> Maybe Int
+>>> bitraverse listToMaybe parseInt (Success "42")
+Just (Success 42)
+>>> bitraverse listToMaybe parseInt (Success "int")
+Nothing
+>>> bitraverse listToMaybe parseInt (Failure [15])
+Just (Failure 15)
+>>> bitraverse listToMaybe parseInt (Failure [])
+Nothing
+-}
 instance Bitraversable Validation where
-    bitraverse :: Applicative f
-               => (e -> f d) -> (a -> f b) -> Validation e a -> f (Validation d b)
+    bitraverse
+        :: Applicative f
+        => (e -> f d)
+        -> (a -> f b)
+        -> Validation e a
+        -> f (Validation d b)
     bitraverse f _ (Failure e) = Failure <$> f e
     bitraverse _ g (Success a) = Success <$> g a
     {-# INLINE bitraverse #-}
-#endif
 
 instance NFData2 Validation where
     liftRnf2 :: (e -> ()) -> (a -> ()) -> Validation e a -> ()
