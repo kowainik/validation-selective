@@ -22,8 +22,26 @@ Common use-cases include:
 1. Validating each input of a form with multiple inputs.
 2. Performing multiple validations of a single value.
 
-Instances of different standard typeclasses provide various semantics
-which can be useful in different use-cases:
+'Validation' provides __modular__ and __composable__ interface which
+means that you can implement validations for different pieces of your
+data independently, and then combine smaller parts into the validation
+of a bigger type. The below table illustrates main ways to combine two
+'Validation's:
+
++---------------+-------------+---------------------------+---------------------------+---------------------------+---------------------------+
+|   Typeclass   | Operation ○ | 'Failure' e ○ 'Failure' d | 'Success' a ○ 'Success' b | 'Failure' e ○ 'Success' a | 'Success' a ○ 'Failure' e |
++===============+=============+===========================+===========================+===========================+===========================+
+| 'Semigroup'   | '<>'        | 'Failure' (e '<>' d)      | 'Success' (a '<>' b)      | 'Failure' e               | 'Failure' e               |
++---------------+-------------+---------------------------+---------------------------+---------------------------+---------------------------+
+| 'Applicative' | '<*>'       | 'Failure' (e '<>' d)      | 'Success' (a b)           | 'Failure' e               | 'Failure' e               |
++---------------+-------------+---------------------------+---------------------------+---------------------------+---------------------------+
+| 'Alternative' | '<|>'       | 'Failure' (e '<>' d)      | 'Success' a               | 'Success' a               | 'Success' a               |
++---------------+-------------+---------------------------+---------------------------+---------------------------+---------------------------+
+| 'Selective'   | '<*?'       | 'Failure' e               | 'Selective' choice        | 'Failure' e               | 'Selective' choice        |
++---------------+-------------+---------------------------+---------------------------+---------------------------+---------------------------+
+
+In other words, instances of different standard typeclasses provide
+various semantics which can be useful in different use-cases:
 
 1. 'Semigroup': accumulate both 'Failure' and 'Success' with '<>'.
 2. 'Monoid': 'Success' that stores 'mempty'.
