@@ -17,7 +17,7 @@ Lightweight pure data validation based on `Applicative` and `Selective` functors
 ```haskell
 data Validation e a
     = Failure e
-	| Success a
+    | Success a
 ```
 
 This data type is similar to `Either` but allows accumulating all
