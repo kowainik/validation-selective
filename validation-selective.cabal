@@ -18,7 +18,7 @@ homepage:            https://github.com/kowainik/validation-selective
 bug-reports:         https://github.com/kowainik/validation-selective/issues
 license:             MPL-2.0
 license-file:        LICENSE
-author:              Kowainik
+author:              Dmitrii Kovanikov, Veronika Romashkina
 maintainer:          Kowainik <xrom.xkov@gmail.com>
 copyright:           2020 Kowainik
 category:            Validation, Selective, Data
