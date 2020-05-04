@@ -19,20 +19,19 @@ jobs:
           - "8.6.5"
           - "8.8.3"
           - "8.10.1"
-	# use only latest GHC on macOS and Windows
-	exclude:
-	  - os: macOS-latest
-	    ghc: 8.8.3
-	  - os: macOS-latest
-	    ghc: 8.6.5
-	  - os: macOS-latest
-	    ghc: 8.4.4
-	  - os: windows-latest
-	    ghc: 8.8.3
-	  - os: windows-latest
-	    ghc: 8.6.5
-	  - os: windows-latest
-	    ghc: 8.4.4
+        exclude:
+          - os: macOS-latest
+            ghc: 8.8.3
+          - os: macOS-latest
+            ghc: 8.6.5
+          - os: macOS-latest
+            ghc: 8.4.4
+          - os: windows-latest
+            ghc: 8.8.3
+          - os: windows-latest
+            ghc: 8.6.5
+          - os: windows-latest
+            ghc: 8.4.4
 
     steps:
     - uses: actions/checkout@v2
@@ -64,8 +63,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-	stack: ["2.1.3"]
-	ghc: ["8.8.3"]
+        stack: ["2.1.3"]
+        ghc: ["8.8.3"]
 
     steps:
     - uses: actions/checkout@v2
@@ -75,7 +74,7 @@ jobs:
       name: Setup Haskell Stack
       with:
         ghc-version: ${{ matrix.ghc }}
-	stack-version: ${{ matrix.stack }}
+        stack-version: ${{ matrix.stack }}
 
     - uses: actions/cache@v1
       name: Cache ~/.stack
