@@ -23,4 +23,6 @@ main = doctest
     : "-XRecordWildCards"
     : "-XScopedTypeVariables"
     : "-XTypeApplications"
-    : [ "src/Validation.hs" ]
+    : [ "src/Validation.hs"
+      , "src/Validation/Combinators.hs"
+      ]

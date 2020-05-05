@@ -73,6 +73,7 @@ library
   import:              common-options
   hs-source-dirs:      src
   exposed-modules:     Validation
+                         Validation.Combinators
   build-depends:       deepseq ^>= 1.4.3.0
                      , selective >= 0.3 && < 0.5
 
