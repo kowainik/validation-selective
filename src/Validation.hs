@@ -82,6 +82,25 @@ module Validation
          -- $either
        , validationToEither
        , eitherToValidation
+
+         -- * Combinators
+       , validateAll
+
+         -- ** When* functions
+       , whenSuccess
+       , whenFailure
+       , whenSuccess_
+       , whenFailure_
+       , whenSuccessM
+       , whenFailureM
+       , whenSuccessM_
+       , whenFailureM_
+
+         -- ** 'Maybe' conversion
+       , failureToMaybe
+       , successToMaybe
+       , maybeToFailure
+       , maybeToSuccess
        ) where
 
 import Control.Applicative (Alternative (..), Applicative (..))
@@ -96,6 +115,8 @@ import Data.Kind (Constraint)
 import Data.List.NonEmpty (NonEmpty (..))
 import GHC.Generics (Generic, Generic1)
 import GHC.TypeLits (ErrorMessage (..), TypeError)
+
+import Validation.Combinators
 
 
 -- $setup

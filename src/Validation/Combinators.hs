@@ -29,7 +29,7 @@ module Validation.Combinators
 
 import Data.Foldable (foldl')
 
-import Validation (Validation (..), validation)
+import {-# SOURCE #-} Validation (Validation (..), validation)
 
 
 {- | Validate all given checks in a 'Foldable'. Returns the 'Success' of the
