@@ -39,16 +39,16 @@ start element when all checks are successful.
 A basic example of usage could look like this:
 
 @
-> let validatePassword = validateAll
+> __let__ validatePassword = 'validateAll'
         [ validateEmptyPassword
         , validateShortPassword
         ]
 
-> validateAll "VeryStrongPassword"
-Success "VeryStrongPassword"
+> 'validateAll' \"VeryStrongPassword\"
+'Success' \"VeryStrongPassword\"
 
-> validateAll ""
-Failure (EmptyPassword :| [ShortPassword])
+> 'validateAll' ""
+'Failure' (EmptyPassword :| [ShortPassword])
 @
 -}
 validateAll
@@ -77,7 +77,7 @@ whenFailure a (Success _) _ = pure a
 
 {- | Applies given action to the 'Validation' content if it is 'Failure'.
 
-Similar to 'whenFailure' but the default value is '()'.
+Similar to 'whenFailure' but the default value is @()@.
 
 >>> whenFailure_ (Success 42) putStrLn
 >>> whenFailure_ (Failure "foo") putStrLn
@@ -104,7 +104,7 @@ whenFailureM x mv f = mv >>= \v -> whenFailure x v f
 
 {- | Monadic version of 'whenFailure_'.
 Applies monadic action to the given 'Validation' in case of 'Failure'.
-Similar to 'whenFailureM' but the default is '()'.
+Similar to 'whenFailureM' but the default is @()@.
 
 >>> whenFailureM_ (pure $ Success 42) putStrLn
 >>> whenFailureM_ (pure $ Failure "foo") putStrLn
@@ -131,7 +131,7 @@ whenSuccess _ (Success a) f  = f a
 
 {- | Applies given action to the 'Validation' content if it is 'Success'.
 
-Similar to 'whenSuccess' but the default value is '()'.
+Similar to 'whenSuccess' but the default value is @()@.
 
 >>> whenSuccess_ (Failure "foo") print
 >>> whenSuccess_ (Success 42) print
@@ -158,7 +158,7 @@ whenSuccessM x mv f = mv >>= \v -> whenSuccess x v f
 
 {- | Monadic version of 'whenSuccess_'.
 Applies monadic action to the given 'Validation' in case of 'Success'.
-Similar to 'whenSuccessM' but the default is '()'.
+Similar to 'whenSuccessM' but the default is @()@.
 
 >>> whenSuccessM_ (pure $ Failure "foo") print
 >>> whenSuccessM_ (pure $ Success 42) print

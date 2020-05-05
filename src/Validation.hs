@@ -271,6 +271,7 @@ validatePassword password =
     validateShortPassword password *> validatePasswordDigit password
 :}
 
+
 Let's see how it works:
 
 >>> validatePassword "abcd"
@@ -279,6 +280,17 @@ Failure (ShortPassword :| [NoDigitPassword])
 Failure (ShortPassword :| [])
 >>> validatePassword "abcd12345"
 Success "abcd12345"
+
+The @validation@ library provides several convenient combinators, so
+you can write the password check in a shorter way:
+
+@
+validatePassword :: 'String' -> 'Validation' ('NonEmpty' FormValidationError) Password
+validatePassword = 'fmap' Password . 'validateAll'
+    [ (\`'failureIf'\`     ShortPassword)   . (< 8) . 'length'
+    , (\`'failureUnless'\` NoDigitPassword) . 'any' isDigit
+    ]
+@
 
 After we've implemented validations for all fields, we can compose
 them together to produce validation for the whole @User@. As before,
@@ -1129,7 +1141,7 @@ failure e = Failure (e :| [])
 {-# INLINE failure #-}
 
 {- | Returns a 'Failure' in case of the given predicate is 'True'.
-Returns @'Success' '()'@ otherwise.
+Returns @'Success' ()@ otherwise.
 
 >>> let shouldFail = (==) "I am a failure"
 >>> failureIf (shouldFail "I am a failure") "I told you so"
@@ -1144,7 +1156,7 @@ failureIf p e
 {-# INLINE failureIf #-}
 
 {- | Returns a 'Failure' unless the given predicate is 'True'.
-Returns @'Success' '()'@ in case of the predicate is satisfied.
+Returns @'Success' ()@ in case of the predicate is satisfied.
 
 Similar to 'failureIf' with the reversed predicate.
 
