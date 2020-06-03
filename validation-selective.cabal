@@ -100,5 +100,5 @@ test-suite validation-selective-doctest
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Doctest.hs
-  build-depends:       doctest ^>= 0.16
+  build-depends:       doctest >= 0.16 && < 0.18
   ghc-options:         -threaded
