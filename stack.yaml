@@ -1,4 +1,1 @@
-resolver: lts-15.4
-
-extra-deps:
-  - hspec-hedgehog-0.0.1.1
+resolver: lts-17.5
