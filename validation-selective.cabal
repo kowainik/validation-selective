@@ -1,6 +1,6 @@
 cabal-version:       2.4
 name:                validation-selective
-version:             0.1.0.0
+version:             0.1.0.1
 synopsis:            Lighweight pure data validation based on Applicative and Selective functors
 description:
     Lighweight pure data validation based on Applicative and Selective
@@ -28,14 +28,15 @@ extra-doc-files:     README.md
 tested-with:         GHC == 8.4.4
                      GHC == 8.6.5
                      GHC == 8.8.3
-                     GHC == 8.10.1
+                     GHC == 8.10.4
+                     GHC == 9.0.1
 
 source-repository head
   type:                git
   location:            https://github.com/kowainik/validation-selective.git
 
 common common-options
-  build-depends:       base >= 4.11.1.0 && < 4.15
+  build-depends:       base >= 4.11.1.0 && < 4.16
 
   ghc-options:         -Wall
                        -Wcompat
@@ -100,5 +101,5 @@ test-suite validation-selective-doctest
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Doctest.hs
-  build-depends:       doctest >= 0.16 && < 0.18
+  build-depends:       doctest >= 0.16 && < 0.19
   ghc-options:         -threaded
