@@ -1,7 +1,9 @@
 {- |
-Copyright:  (c) 2020 Kowainik
+Copyright:  (c) 2020-2021 Kowainik
 SPDX-License-Identifier: MPL-2.0
-Maintainer: Kowainik <xrom.xkov@gmail.com>
+Maintainer:  Kowainik <xrom.xkov@gmail.com>
+Stability:   Stable
+Portability: Portable
 
 Helpful combinators to work with 'Validation' data type.
 -}

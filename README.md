@@ -100,5 +100,5 @@ the following to the `extra-deps` section of your `stack.yaml` file:
 
 ```yaml
 extra-deps:
-  - validation-selective-0.1.0.0
+  - validation-selective-CURRENT_VERSION
 ```
