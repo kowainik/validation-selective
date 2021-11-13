@@ -1,6 +1,6 @@
 cabal-version:       2.4
 name:                validation-selective
-version:             0.1.0.1
+version:             0.1.0.2
 synopsis:            Lighweight pure data validation based on Applicative and Selective functors
 description:
     Lighweight pure data validation based on Applicative and Selective
@@ -27,16 +27,17 @@ extra-doc-files:     README.md
                      CHANGELOG.md
 tested-with:         GHC == 8.4.4
                      GHC == 8.6.5
-                     GHC == 8.8.3
-                     GHC == 8.10.4
+                     GHC == 8.8.4
+                     GHC == 8.10.7
                      GHC == 9.0.1
+                     GHC == 9.2.1
 
 source-repository head
   type:                git
   location:            https://github.com/kowainik/validation-selective.git
 
 common common-options
-  build-depends:       base >= 4.11.1.0 && < 4.16
+  build-depends:       base >= 4.11 && < 4.17
 
   ghc-options:         -Wall
                        -Wcompat
@@ -53,6 +54,11 @@ common common-options
     ghc-options:       -Wmissing-deriving-strategies
   if impl(ghc >= 8.10)
     ghc-options:       -Wunused-packages
+  if impl(ghc >= 9.0)
+    ghc-options:       -Winvalid-haddock
+  if impl(ghc >= 9.2)
+    ghc-options:       -Wredundant-bang-patterns
+                       -Woperator-whitespace
 
   default-language:    Haskell2010
   default-extensions:  ConstraintKinds
@@ -88,7 +94,7 @@ test-suite validation-selective-test
                        Test.Properties
   build-depends:       validation-selective
                      , hedgehog >= 1.0 && < 1.2
-                     , hspec >= 2.7.1 && < 2.9
+                     , hspec >= 2.7.1 && < 2.10
                      , hspec-hedgehog ^>= 0.0.1.1
                      , selective
                      , text ^>= 1.2.3
@@ -101,5 +107,5 @@ test-suite validation-selective-doctest
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Doctest.hs
-  build-depends:       doctest >= 0.16 && < 0.19
+  build-depends:       doctest >= 0.16 && < 0.20
   ghc-options:         -threaded
