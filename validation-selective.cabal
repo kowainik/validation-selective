@@ -87,7 +87,7 @@ test-suite validation-selective-test
                        Test.Laws
                        Test.Properties
   build-depends:       validation-selective
-                     , hedgehog ^>= 1.0
+                     , hedgehog >= 1.0 && < 1.2
                      , hspec >= 2.7.1 && < 2.9
                      , hspec-hedgehog ^>= 0.0.1.1
                      , selective
