@@ -3,6 +3,11 @@
 `validation-selective` uses [PVP Versioning][1].
 The changelog is available [on GitHub][2].
 
+## 0.1.0.2 — Nov 16, 2021
+
+* [#62](https://github.com/kowainik/validation-selective/issues/62):
+  Support GHC-9.2.
+
 ## 🥧 0.1.0.1 — Mar 14, 2021
 
 * [#57](https://github.com/kowainik/validation-selective/issues/57):

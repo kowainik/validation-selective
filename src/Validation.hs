@@ -645,8 +645,8 @@ instance (Semigroup e, Monoid e) => Alternative (Validation e) where
     {-# INLINE empty #-}
 
     (<|>) :: Validation e a -> Validation e a -> Validation e a
-    s@Success{} <|> _ = s
-    _ <|> s@Success{} = s
+    s@Success{} <|> _        = s
+    _ <|> s@Success{}        = s
     Failure e <|> Failure e' = Failure (e <> e')
     {-# INLINE (<|>) #-}
 
@@ -851,7 +851,7 @@ In case it is used by mistake, the user will see the following:
 ...
 -}
 instance (NoValidationMonadError, Semigroup e) => Monad (Validation e) where
-    return = error "Unreachable Validation instance of Monad"
+    return = pure
     (>>=)  = error "Unreachable Validation instance of Monad"
 
 -- | Helper type family to produce error messages
