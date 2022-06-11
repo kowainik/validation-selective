@@ -82,7 +82,7 @@ library
   exposed-modules:     Validation
                          Validation.Combinators
   build-depends:       deepseq ^>= 1.4.3.0
-                     , selective >= 0.3 && < 0.5
+                     , selective >= 0.3 && < 0.6
 
 test-suite validation-selective-test
   import:              common-options
@@ -94,10 +94,10 @@ test-suite validation-selective-test
                        Test.Properties
   build-depends:       validation-selective
                      , hedgehog >= 1.0 && < 1.2
-                     , hspec >= 2.7.1 && < 2.10
+                     , hspec >= 2.7.1 && < 2.11
                      , hspec-hedgehog ^>= 0.0.1.1
                      , selective
-                     , text ^>= 1.2.3
+                     , text >= 1.2.3 && < 2.1
   ghc-options:         -threaded
                        -rtsopts
                        -with-rtsopts=-N
@@ -107,5 +107,5 @@ test-suite validation-selective-doctest
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Doctest.hs
-  build-depends:       doctest >= 0.16 && < 0.20
+  build-depends:       doctest >= 0.16 && < 0.21
   ghc-options:         -threaded
