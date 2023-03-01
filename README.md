@@ -61,7 +61,7 @@ popular validation packages in the Haskell ecosystem:
 ## How to use
 
 `validation-selective` is compatible with the latest GHC compiler
-versions starting from `8.4.4`.
+versions starting from `8.6`.
 
 In order to start using `validation-selective` in your project, you
 will need to set it up with the three easy steps:
