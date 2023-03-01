@@ -3,6 +3,16 @@
 `validation-selective` uses [PVP Versioning][1].
 The changelog is available [on GitHub][2].
 
+## 0.2.0.0 — Mar 1, 2023
+
+* [#62](https://github.com/kowainik/validation-selective/issues/62):
+  Support GHC-9.4.
+* Allow `hedgehog-1.2`.
+* Allow `selective-0.6`.
+* Allow `doctest-0.21`.
+* Remove support for GHC-8.4 (due to `selective-0.6`, which dropped support for
+  the earlier GHCs).
+
 ## 0.1.0.2 — Jun 11, 2021
 
 * [#62](https://github.com/kowainik/validation-selective/issues/62):
