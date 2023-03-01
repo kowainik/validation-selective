@@ -20,7 +20,7 @@ license:             MPL-2.0
 license-file:        LICENSE
 author:              Dmitrii Kovanikov, Veronika Romashkina
 maintainer:          Kowainik <xrom.xkov@gmail.com>
-copyright:           2020-2022 Kowainik
+copyright:           2020-2023 Kowainik
 category:            Validation, Selective, Data
 build-type:          Simple
 extra-doc-files:     README.md
@@ -30,8 +30,8 @@ tested-with:         GHC == 8.4.4
                      GHC == 8.8.4
                      GHC == 8.10.7
                      GHC == 9.0.2
-                     GHC == 9.2.4
-                     GHC == 9.4.2
+                     GHC == 9.2.7
+                     GHC == 9.4.4
 
 source-repository head
   type:                git
@@ -46,10 +46,8 @@ common common-options
                        -Wincomplete-uni-patterns
                        -Wincomplete-record-updates
                        -Wredundant-constraints
-  if impl(ghc >= 8.2)
-    ghc-options:       -fhide-source-paths
-  if impl(ghc >= 8.4)
-    ghc-options:       -Wmissing-export-lists
+                       -fhide-source-paths
+                       -Wmissing-export-lists
                        -Wpartial-fields
   if impl(ghc >= 8.8)
     ghc-options:       -Wmissing-deriving-strategies
@@ -83,7 +81,7 @@ library
   exposed-modules:     Validation
                          Validation.Combinators
   build-depends:       deepseq ^>= 1.4.3.0
-                     , selective >= 0.3 && < 0.6
+                     , selective >= 0.3 && < 0.7
 
 test-suite validation-selective-test
   import:              common-options
@@ -108,5 +106,5 @@ test-suite validation-selective-doctest
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Doctest.hs
-  build-depends:       doctest >= 0.16 && < 0.21
+  build-depends:       doctest >= 0.16 && < 0.22
   ghc-options:         -threaded

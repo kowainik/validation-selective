@@ -408,7 +408,7 @@ __Examples__
 >>> mempty :: Validation String [Bool]
 Success []
 -}
-instance (Semigroup e, Semigroup a, Monoid a) => Monoid (Validation e a) where
+instance (Semigroup e, Monoid a) => Monoid (Validation e a) where
     mempty :: Validation e a
     mempty = Success mempty
     {-# INLINE mempty #-}
@@ -639,7 +639,7 @@ Failure ["WRONG","FAIL"]
 >>> failure2 <|> success2
 Success [15]
 -}
-instance (Semigroup e, Monoid e) => Alternative (Validation e) where
+instance (Monoid e) => Alternative (Validation e) where
     empty :: Validation e a
     empty = Failure mempty
     {-# INLINE empty #-}
