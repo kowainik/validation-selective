@@ -1,6 +1,6 @@
 cabal-version:       2.4
 name:                validation-selective
-version:             0.1.0.3
+version:             0.2.0.0
 synopsis:            Lighweight pure data validation based on Applicative and Selective functors
 description:
     Lighweight pure data validation based on Applicative and Selective

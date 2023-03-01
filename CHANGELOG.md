@@ -3,7 +3,7 @@
 `validation-selective` uses [PVP Versioning][1].
 The changelog is available [on GitHub][2].
 
-## 0.1.0.3 — Mar 1, 2023
+## 0.2.0.0 — Mar 1, 2023
 
 * [#62](https://github.com/kowainik/validation-selective/issues/62):
   Support GHC-9.4.
