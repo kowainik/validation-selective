@@ -31,13 +31,14 @@ tested-with:         GHC == 8.6.5
                      GHC == 9.0.2
                      GHC == 9.2.7
                      GHC == 9.4.4
+                     GHC == 9.6.1
 
 source-repository head
   type:                git
   location:            https://github.com/kowainik/validation-selective.git
 
 common common-options
-  build-depends:       base >= 4.12 && < 4.18
+  build-depends:       base >= 4.12 && < 4.20
 
   ghc-options:         -Wall
                        -Wcompat

@@ -858,7 +858,7 @@ instance (NoValidationMonadError, Semigroup e) => Monad (Validation e) where
 type family NoValidationMonadError :: Constraint where
     NoValidationMonadError = TypeError
         ( 'Text "Type 'Validation' doesn't have lawful 'Monad' instance"
-        ':$$: 'Text "which means that you can't use 'Monad' methods with 'Validation'."
+        ' :$$: 'Text "which means that you can't use 'Monad' methods with 'Validation'."
         )
 
 ----------------------------------------------------------------------------
