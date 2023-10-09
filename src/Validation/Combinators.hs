@@ -46,10 +46,10 @@ A basic example of usage could look like this:
         , validateShortPassword
         ]
 
-> 'validateAll' \"VeryStrongPassword\"
+> 'validatePassword' \"VeryStrongPassword\"
 'Success' \"VeryStrongPassword\"
 
-> 'validateAll' ""
+> 'validatePassword' ""
 'Failure' (EmptyPassword :| [ShortPassword])
 @
 -}
