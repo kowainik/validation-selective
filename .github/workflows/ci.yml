@@ -16,7 +16,10 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
-        cabal: ["3.8"]
+        # We must always use the latest version of cabal because
+        # otherwise ghc-paths, which is a dependency of doctest,
+        # can't be configured.
+        cabal: ["3.10"]
         ghc:
           - "8.6.5"
           - "8.8.4"
@@ -24,7 +27,13 @@ jobs:
           - "9.0.2"
           - "9.2.7"
           - "9.4.4"
+          - "9.6.3"
+          - "9.8.1"
         exclude:
+          - os: macOS-latest
+            ghc: 9.6.3
+          - os: macOS-latest
+            ghc: 9.4.4
           - os: macOS-latest
             ghc: 9.2.7
           - os: macOS-latest
@@ -36,6 +45,10 @@ jobs:
           - os: macOS-latest
             ghc: 8.6.5
 
+          - os: windows-latest
+            ghc: 9.6.3
+          - os: windows-latest
+            ghc: 9.4.4
           - os: windows-latest
             ghc: 9.2.7
           - os: windows-latest
