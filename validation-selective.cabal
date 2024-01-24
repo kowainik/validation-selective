@@ -80,7 +80,7 @@ library
   exposed-modules:     Validation
                          Validation.Combinators
   build-depends:       deepseq >= 1.4.3.0 && < 1.6
-                     , selective >= 0.3 && < 0.7
+                     , selective >= 0.3 && < 0.8
 
 test-suite validation-selective-test
   import:              common-options
