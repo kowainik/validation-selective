@@ -37,7 +37,7 @@ source-repository head
   location:            https://github.com/kowainik/validation-selective.git
 
 common common-options
-  build-depends:       base >= 4.12 && < 4.21
+  build-depends:       base >= 4.12 && < 4.22
 
   ghc-options:         -Wall
                        -Wcompat
