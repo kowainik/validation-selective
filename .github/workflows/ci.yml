@@ -20,7 +20,7 @@ jobs:
         # We must always use the latest version of cabal because
         # otherwise ghc-paths, which is a dependency of doctest,
         # can't be configured.
-        cabal: ["3.10"]
+        cabal: ["3.16"]
         ghc:
           - "8.6.5"
           - "8.8.4"
@@ -32,6 +32,7 @@ jobs:
           - "9.8.1"
           - "9.10.1"
           - "9.12.1"
+          - "9.14.1"
         exclude:
           - os: macOS-latest
             ghc: 9.6.3
