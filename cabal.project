@@ -1,0 +1,3 @@
+packages: validation-selective.cabal
+
+allow-newer: boring:base
