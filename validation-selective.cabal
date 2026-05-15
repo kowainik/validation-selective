@@ -93,7 +93,7 @@ test-suite validation-selective-test
   build-depends:       validation-selective
                      , hedgehog >= 1.0 && < 1.8
                      , hspec >= 2.7.1 && < 2.12
-                     , hspec-hedgehog >= 0.0.1.1 && < 0.2
+                     , hspec-hedgehog >= 0.0.1.1 && < 0.4
                      , selective
                      , text >= 1.2.3 && < 2.2
   ghc-options:         -threaded
